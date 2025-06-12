@@ -9,7 +9,7 @@
 #include "..\Include\CCTS\CCTS_BaseIncludes.mqh"
 
 // EA Specific Includes
-#include "..\Include\CCTS\Indicators\\IndicatorSetNone.mqh"
+#include "..\Include\CCTS\Indicators\IndicatorSetBreakout.mqh"
 #include "..\Include\CCTS\EaSetup\Breakout_Setup.mqh"
 #include "..\Include\CCTS\EaSetup\Breakout_Signals.mqh"
 
@@ -281,7 +281,7 @@ void OnTick()
       tradeSignalShort = 2;
      }
 
-   MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);;
+   MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);
 
    if(UseCustomExits)
      {

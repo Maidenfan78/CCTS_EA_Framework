@@ -139,9 +139,9 @@ void ReadFromFile(const string &PersistentVariableFileName, PersistentVariables 
    string parts[];
    int partsCount = StringSplit(readLine, ',', parts);
 
-   if(partsCount < 9)
+   if(partsCount < 12)
      {
-      ErrorLog(__FUNCTION__, "File error", currentSymbol, fileName, "Insufficient data in file. Expected 9 parts.");
+      ErrorLog(__FUNCTION__, "File error", currentSymbol, fileName, "Insufficient data in file. Expected 12 parts.");
       return;
      }
 
@@ -155,6 +155,10 @@ void ReadFromFile(const string &PersistentVariableFileName, PersistentVariables 
    Variables.TrailingStopAdjusted   = StringToInteger(parts[6]) != 0;
    Variables.oldAtrValue            = StringToDouble(parts[7]);
    Variables.Hit95Logged            = StringToInteger(parts[8]) != 0;
+   Variables.orderOpenPrice         = StringToDouble(parts[8]);
+   Variables.Hit95Logged            = StringToInteger(parts[9]) != 0;
+   Variables.stopLossHit            = StringToInteger(parts[10]) != 0;
+   Variables.baseLineFlipped        = StringToInteger(parts[11]) != 0;
   }
 
 

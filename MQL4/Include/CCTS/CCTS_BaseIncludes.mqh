@@ -21,7 +21,6 @@
 #include "..\CCTS\CCTS_CountOrders.mqh"
 #include "..\CCTS\CCTS_CalculateSLTP.mqh"
 #include "..\CCTS\CCTS_AutoLots.mqh"
-#include "..\CCTS\CCTS_AutoLots.mqh"
 #include "..\CCTS\CCTS_NewBar.mqh"
 #include "..\CCTS\CCTS_TimeUtils.mqh"
 #include "..\CCTS\CCTS_MoneyManagement.mqh"

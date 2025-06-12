@@ -144,7 +144,7 @@ void ErrorLog(string functionName, string context, string one = "", string two =
 
       if(handle == INVALID_HANDLE)
         {
-         ErrorLog(__FUNCTION__, "File error", currentSymbol, logFileName, "Unable to write to error log file after retrying");
+         Print("Error in CCTS_LogErrors.mqh. Unable to write to error log file after retrying");
          return;
         }
 

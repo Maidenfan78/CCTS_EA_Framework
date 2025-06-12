@@ -10,6 +10,8 @@
 #ifndef __CCTS_CONFIG_MQH__
 #define __CCTS_CONFIG_MQH__
 
+#include "..\CCTS\CCTS_AutoMagic.mqh"
+
 extern string RiskHeader              = "-------------------------- Risk Setting Input --------------------------";
 input double  RiskPercent             = 1.0;         // Percentage of account balnce to risk
 
@@ -37,14 +39,14 @@ const string  currentSymbol           = Symbol();     // Chart symbol
 
 string        eaTitle;
 
-bool          AutoMagic               = TRUE; //Generate Magic Number based on Symbol and Long/Short params
+bool          UseAutoMagic            = TRUE; //Generate Magic Number based on Symbol and Long/Short params
 
 string        magicNumberString;
 
 string        tradeComment_1;
 string        tradeComment_2;
 
-int           MagicNumber       = AutoMagic;
+int           MagicNumber       = AutoMagic();
 
 const string  brokerName       = AccountCompany();
 const long    rawMode          = AccountInfoInteger(ACCOUNT_TRADE_MODE);
@@ -211,7 +213,7 @@ double         currentLine5Ex2;
 double         currentLine6Ex2;
 string         Ex2SignalCross;
 string         Ex2Trend;
-string         Ex2ignal;
+string         Ex2Signal;
 
 
 #endif
