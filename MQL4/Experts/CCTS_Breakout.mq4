@@ -195,15 +195,19 @@ void OnTick()
    if(!IsDayAllowed())
       return;
 
-// If *all* toggles are off, skip filtering entirely:
-   if(!(!EnableAsianSession && !EnableLondonSession && !EnableNewYorkSession))
+// Skip session filtering for the Daily timeframe
+   if(Period() != PERIOD_D1)
      {
-      // otherwise require at least one enabled session to be active
-      if(!((EnableAsianSession     && inAsia)
-           ||(EnableLondonSession  && inLondon)
-           ||(EnableNewYorkSession && inNY)))
+// If *all* toggles are off, skip filtering entirely:
+      if(!(!EnableAsianSession && !EnableLondonSession && !EnableNewYorkSession))
         {
-         return;  // outside your chosen session windows
+         // otherwise require at least one enabled session to be active
+         if(!((EnableAsianSession     && inAsia)
+              ||(EnableLondonSession  && inLondon)
+              ||(EnableNewYorkSession && inNY)))
+           {
+            return;  // outside your chosen session windows
+           }
         }
      }
 
