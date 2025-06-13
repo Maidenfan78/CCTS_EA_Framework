@@ -16,13 +16,13 @@
 #include <CCTS\\Indicators\\Ex2\\IndicatorEx2_None.mqh>
 
 //////////////////////////////////// Ex1 Indicators ///////////////////////////////////
-#include <CCTS\\Indicators\\Ex1\\IndicatorEx1_None.mqh>
+#include <CCTS\\Indicators\\Ex1\\IndicatorEx1_Rex.mqh>
 
 //////////////////////////////////// Continuation Indicators //////////////////////////////
 //#include <MyBot_v6\\Indicators\\IndicatorsCont\\ContIndicator_Rex.mqh>
 
 //////////////////////////////////// V1 Indicators ////////////////////////////////////
-#include <CCTS\\Indicators\\V1\\IndicatorV1_None.mqh>
+#include <CCTS\\Indicators\\V1\\IndicatorV1_OBV_With_MA.mqh>
 
 //////////////////////////////////// C2 Indicators ////////////////////////////////////
 #include <CCTS\\Indicators\\C2\\IndicatorC2_None.mqh>

@@ -24,12 +24,12 @@ input bool     AllowThursday          = true;
 input bool     AllowFriday            = true;
 input bool     AllowSaturday          = false;
 
-extern string  IndicatorEnableHeader  = "-------------------------- Enable/Disable Indicators --------------------------";
+extern string  IndicatorEnableHeader  = "-------------------------- Enable/Disable Indicaotrs --------------------------";
 input  bool    EnableBL2              = false;
 input bool     EnableC1               = false;
 input bool     EnableC2               = false;
-input bool     EnableV1               = false;
-input bool     EnableEx1              = false;
+input bool     EnableV1               = true;
+input bool     EnableEx1              = true;
 input bool     EnableEx2              = false;
 
 extern string  EntrySelectHeader      = "-------------------------- Enable/Disable BL2, C1 Entry Type & Exit --------------------------";

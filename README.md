@@ -20,6 +20,33 @@ MQL4/
 
 ---
 
+
+The EA uses the following main files:
+
+- `MQL4/Experts/CCTS_Breakout.mq4` – main Expert Advisor
+- `MQL4/Include/CCTS/EaSetup/Breakout_Setup.mqh` – strategy inputs
+- `MQL4/Include/CCTS/EaSetup/Breakout_Signals.mqh` – signal generation
+
+Core Modules
+
+- **CCTS_Config.mqh** – Shared inputs and variables
+- **CCTS_BaseIncludes.mqh** – Central list of include files
+- **CCTS_AutoLots.mqh** – Lot size utilities
+- **CCTS_AutoMagic.mqh** – Creates symbol-based magic numbers
+- **CCTS_CalculateDigitsPoints.mqh** – Retrieves digits, points, and pip values
+- **CCTS_CalculateSlippage.mqh** – Calculates slippage allowances
+- **CCTS_CalculateSLTP.mqh** – Standard SL/TP calculations
+- **CCTS_CloseTrades.mqh** – Routines for closing open orders
+- **CCTS_CountOrders.mqh** – Counts active orders for the EA
+- **CCTS_LogActions.mqh** – Logs EA actions (open/close/trail)
+- **CCTS_LogErrors.mqh** – Records error messages
+- **CCTS_LogTrades.mqh** – Journals trade outcomes
+- **CCTS_MoneyManagement.mqh** – Breakeven and trailing stop logic
+- **CCTS_NewBar.mqh** – Detects new bars for timing
+- **CCTS_OrderOpen.mqh** – Handles first and second order entries
+- **CCTS_PersistentVariables.mqh** – Saves variables between restarts
+- **CCTS_TimeUtils.mqh** – Timezone and session utilities
+
 ## 🔧 Key Features
 
 * 🔁 **Modular architecture** – Easily swap or extend signal logic per strategy

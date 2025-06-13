@@ -18,7 +18,7 @@ input double  RiskPercent             = 1.0;         // Percentage of account ba
 extern string TpSlHeader              = "-------------------------- TP & SL Settings --------------------------";
 input double  ATR_SL_Multiplier       = 1.5;         // Stoploss ATR multiplier
 input double  ATR_TP_Multiplier       = 1.0;         // Take profit ATR multiplier
-input double  ATR_TP_Multiplier_2     = 4.0;         // 2nd trade ATR mulltiplier if enabled
+input double  ATR_TP_Multiplier_2     = 4.0;         // 2nd trade ATR Multiplier if enabled
 
 extern string TSLHeader               = "-------------------------- Trailing Stoploss Settings --------------------------";
 input double  ATR_TrailingStart       = 2.5;         // ATR multiplier for when to initiate trailing stop
@@ -29,7 +29,7 @@ input bool    UseTrailingStop         = true;        // Enable/Disable trailing 
 input bool    UseBreakeven            = true;        // Enable/Disable breakeven code
 input bool    Use_Tp_2                = false;       // Enable/Disable 2nd take profit or let second trade run
 
-extern string DispPanleHeader         = "-------------------------- Display Panel Settings--------------------------";
+extern string DispPanelHeader         = "-------------------------- Display Panel Settings--------------------------";
 input bool    EnablePrintLogs         = true;        // Enable/Disable logs
 input bool    ShowDisplayPanel        = true;        // Enable/Diable display panel
 
@@ -63,9 +63,9 @@ double        LotsVolume;                      // Final order size
 int           tradeDirection;
 
 //Persistent variables for CCTS_PersistentVariables.mqh
-string                fileName;         //Store name of CSV file for persistent vaiables
+string                fileName;         //Store name of CSV file for persistent variables
 
-// Define the PersistentVariables struct CSV file for persistent vaiables
+// Define the PersistentVariables struct CSV file for persistent variables
 struct PersistentVariables
   {
    bool              Hit95Target;
@@ -83,7 +83,7 @@ struct PersistentVariables
 
   };
 
-// Initialize default values for the struct CSV file for persistent vaiables
+// Initialize default values for the struct CSV file for persistent variables
 void InitializeDefaultValues(PersistentVariables &Variables)
   {
    variables.Hit95Target            = false;
@@ -101,7 +101,7 @@ void InitializeDefaultValues(PersistentVariables &Variables)
 
   }
 
-PersistentVariables variables; // Declare global struct instance CSV file for persistent vaiables
+PersistentVariables variables; // Declare global struct instance CSV file for persistent variables
 
 bool customExitBuy;  // did we just exit buy?
 bool customExitSell;  // did we just exit sell?

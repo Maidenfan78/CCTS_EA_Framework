@@ -9,8 +9,9 @@
 #include "..\Include\CCTS\CCTS_BaseIncludes.mqh"
 
 // EA Specific Includes
-#include "..\Include\CCTS\Indicators\IndicatorSetBreakout.mqh"
+#include "..\Include\CCTS\CCTS_AutoMagic.mqh"
 #include "..\Include\CCTS\EaSetup\Breakout_Setup.mqh"
+#include "..\Include\CCTS\Indicators\\IndicatorSetBreakout.mqh"
 #include "..\Include\CCTS\EaSetup\Breakout_Signals.mqh"
 
 //EA version & name
@@ -104,6 +105,8 @@ int OnInit()
    Print("Read from file in OnInit");
 
 // === SETUP PHASE ===
+   if(EnableEx1)
+      Ex1Setup();
    if(EnableV1)
       V1Setup();
    if(EnableC2)
@@ -114,6 +117,8 @@ int OnInit()
       BL2Setup();
 
 // === SIGNAL PHASE ===
+   if(EnableEx1)
+      Ex1Signals();
    if(EnableBL2)
       BL2Signals();
    if(EnableC1)
@@ -253,9 +258,6 @@ void OnTick()
    if(EnableEx2)
       SlowExitIndicatorOn();
 
-   if(!inLondon && !inNY)
-      return;   // outside trading hours
-
    if(openOrders != 0)
       return;   // bail if any existing positions
 
@@ -281,7 +283,7 @@ void OnTick()
       tradeSignalShort = 2;
      }
 
-   MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);
+   MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);;
 
    if(UseCustomExits)
      {
