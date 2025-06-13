@@ -112,7 +112,6 @@ void WriteToFile(const string &PersistentVariableFileName, const PersistentVaria
    FileClose(fileHandle);
   }
 
-
 // Read the struct data from the file
 void ReadFromFile(const string &PersistentVariableFileName, PersistentVariables &Variables)
   {
@@ -154,7 +153,6 @@ void ReadFromFile(const string &PersistentVariableFileName, PersistentVariables 
    Variables.MovedToBE              = StringToInteger(parts[5]) != 0;
    Variables.TrailingStopAdjusted   = StringToInteger(parts[6]) != 0;
    Variables.oldAtrValue            = StringToDouble(parts[7]);
-   Variables.Hit95Logged            = StringToInteger(parts[8]) != 0;
    Variables.orderOpenPrice         = StringToDouble(parts[8]);
    Variables.Hit95Logged            = StringToInteger(parts[9]) != 0;
    Variables.stopLossHit            = StringToInteger(parts[10]) != 0;
