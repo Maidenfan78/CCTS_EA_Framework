@@ -52,7 +52,6 @@ const string  brokerName       = AccountCompany();
 const long    rawMode          = AccountInfoInteger(ACCOUNT_TRADE_MODE);
 
 const int     acctLeverage     = AccountLeverage();
-string        MetricsDisplayPanel        = "";
 double        pointValue;
 int           ATR_Period       = 14;
 double        ATRValue         = 0;

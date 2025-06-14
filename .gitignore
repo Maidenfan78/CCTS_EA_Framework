@@ -8,6 +8,7 @@ MQL4/Logs/
 tester/logs/
 tester/cache/
 *.log
+compile_log.txt
 
 # Strategy-tester artefacts
 tester/*.htm
