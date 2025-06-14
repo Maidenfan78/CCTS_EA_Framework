@@ -164,6 +164,7 @@ void UpdateTrailingStop(double buyTSPrice, double sellTSPrice)
                          currentSymbol,
                          DoubleToString(currentTP,   digits),
                          DoubleToString(buyTSPrice, digits));
+                         variables.TrailingStopAdjusted = true;
                openOrders = MyOpenOrders();
               }
            }
@@ -196,6 +197,7 @@ void UpdateTrailingStop(double buyTSPrice, double sellTSPrice)
                             currentSymbol,
                             DoubleToString(currentTP,    digits),
                             DoubleToString(sellTSPrice, digits));
+                            variables.TrailingStopAdjusted = true;
                   openOrders = MyOpenOrders();
                  }
               }

@@ -23,6 +23,16 @@ void signals(
    exitSignalLong   = 0;
    exitSignalShort  = 0;
 
+      // ◀── NEW bounds-check ──▶
+   // We peek back up to RangeEnd bars for entry,
+   // AND another 10 bars for exit-scan (i=2..11).
+   int maxLookback = MathMax(RangeEnd, CompareBarsAgo);
+   int exitBars    = 11;                         // bars scanned for last entry
+   int barsNeeded  = maxLookback + exitBars + 1; // +1 for zero-based safety
+
+   if(Bars < barsNeeded)
+      return;
+
    // need enough bars
    if(Bars < RangeEnd + 2) 
       return;

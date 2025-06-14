@@ -573,16 +573,16 @@ bool MetricsDisplayPanel(
       return(false);    // panel is disabled
 
 // draw background
-   ObjectCreate(0, "merticsBackground", OBJ_RECTANGLE_LABEL, 0, 0, 0);
-   ObjectSetInteger(0, "merticsBackground", OBJPROP_CORNER, CORNER_LEFT_UPPER);
-   ObjectSetInteger(0, "merticsBackground", OBJPROP_XDISTANCE, 0);
-   ObjectSetInteger(0, "merticsBackground", OBJPROP_YDISTANCE, 13);
-   ObjectSetInteger(0, "merticsBackground", OBJPROP_XSIZE, 210);  // Width
-   ObjectSetInteger(0, "merticsBackground", OBJPROP_YSIZE, 430);  // Height
-   ObjectSetInteger(0, "merticsBackground", OBJPROP_STYLE, STYLE_SOLID);
-   ObjectSetInteger(0, "merticsBackground", OBJPROP_BGCOLOR, clrBlack);
-   ObjectSetInteger(0, "merticsBackground", OBJPROP_WIDTH, 1);
-   ObjectSetInteger(0, "merticsBackground", OBJPROP_ZORDER, 0);
+   ObjectCreate(0, "metricsBackground", OBJ_RECTANGLE_LABEL, 0, 0, 0);
+   ObjectSetInteger(0, "metricsBackground", OBJPROP_CORNER, CORNER_LEFT_UPPER);
+   ObjectSetInteger(0, "metricsBackground", OBJPROP_XDISTANCE, 0);
+   ObjectSetInteger(0, "metricsBackground", OBJPROP_YDISTANCE, 13);
+   ObjectSetInteger(0, "metricsBackground", OBJPROP_XSIZE, 210);  // Width
+   ObjectSetInteger(0, "metricsBackground", OBJPROP_YSIZE, 430);  // Height
+   ObjectSetInteger(0, "metricsBackground", OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, "metricsBackground", OBJPROP_BGCOLOR, clrBlack);
+   ObjectSetInteger(0, "metricsBackground", OBJPROP_WIDTH, 1);
+   ObjectSetInteger(0, "metricsBackground", OBJPROP_ZORDER, 0);
 
 // finally display
    Comment(txt);
@@ -641,5 +641,3 @@ double OnTester()
 
    return (profitTrades / totalTrades);  // Win rate
   }
-
-
