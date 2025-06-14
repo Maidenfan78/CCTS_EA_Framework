@@ -287,7 +287,7 @@ void OnTick()
       tradeSignalShort = 2;
      }
 
-   MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);;
+   MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);
 
    if(UseCustomExits)
      {

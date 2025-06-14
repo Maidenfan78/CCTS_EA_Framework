@@ -24,7 +24,7 @@ input bool     AllowThursday          = true;
 input bool     AllowFriday            = true;
 input bool     AllowSaturday          = false;
 
-extern string  IndicatorEnableHeader  = "-------------------------- Enable/Disable Indicaotrs --------------------------";
+extern string  IndicatorEnableHeader  = "-------------------------- Enable/Disable Indicators --------------------------";
 input  bool    EnableBL2              = false;
 input bool     EnableC1               = false;
 input bool     EnableC2               = false;

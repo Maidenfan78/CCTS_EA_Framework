@@ -1,1 +1,21 @@
+# --- MetaTrader 4/5 ---
+# Compiled binaries
 *.ex4
+*.ex5
+
+# Logs and caches
+MQL4/Logs/
+tester/logs/
+tester/cache/
+*.log
+
+# Strategy-tester artefacts
+tester/*.htm
+tester/*.xml
+*.csv
+*.set
+*.ini
+
+# OS-level clutter
+Thumbs.db
+.DS_Store

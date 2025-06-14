@@ -31,7 +31,7 @@ input bool    Use_Tp_2                = false;       // Enable/Disable 2nd take 
 
 extern string DispPanelHeader         = "-------------------------- Display Panel Settings--------------------------";
 input bool    EnablePrintLogs         = true;        // Enable/Disable logs
-input bool    ShowDisplayPanel        = true;        // Enable/Diable display panel
+input bool    ShowDisplayPanel        = true;        // Enable/Disable display panel
 
 // Global Variables
 
