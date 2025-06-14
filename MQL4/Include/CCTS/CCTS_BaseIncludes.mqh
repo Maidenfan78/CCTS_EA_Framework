@@ -31,6 +31,7 @@
 #include "..\CCTS\CCTS_LogTradesBacktest.mqh"
 #include "..\CCTS\CCTS_LogActions.mqh"
 #include "..\CCTS\CCTS_PersistentVariables.mqh"
+#include "..\CCTS\PythonSignalReader.mqh"
 
 
 #endif

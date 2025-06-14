@@ -20,6 +20,9 @@ MQL4/
 │           ├── V1/                      # Volume indicators (e.g., OBV with MA)
 │           └── Ex1/                     # Exit indicators (e.g., Rex)
 │           └── IndicatorSetBreakout.mqh # Indicators used by EA
+python/
+├── train_model.py        # Train ML models
+└── generate_signals.py   # Create signals for the EA
 
 ```
 
@@ -60,6 +63,7 @@ Core Modules
 * 📒 **Trade Logging** – Built-in journaling for debugging and evaluation
 * 🧩 **Support for multiple strategies** – e.g., ICT concepts, divergence, Renko, pivot-based entries
 * 🔊 **Volume & Exit Indicators** – Includes the V1 OBV with MA filter and Ex1 Rex early-exit logic
+* 🤖 **Python ML integration** – Train models in Python and feed signals to the EA via `python_signals.csv`
 
 ---
 
@@ -106,6 +110,21 @@ pause
 ```
 
 Make sure to adjust the path to `metaeditor.exe` as needed.
+
+---
+
+## 🐍 Python Signal Workflow
+
+1. Prepare a CSV file with OHLC data and the four target columns.
+2. Install Python dependencies (`pandas`, `scikit-learn`, `joblib`), then train the models:
+   ```bash
+   python python/train_model.py data.csv --model model.pkl
+   ```
+3. Generate daily signals:
+   ```bash
+   python python/generate_signals.py latest.csv --model model.pkl --output MQL4/Files/python_signals.csv
+   ```
+4. Attach the EA to MT4 and it will read `python_signals.csv` on each tick.
 
 ---
 

@@ -279,6 +279,12 @@ void OnTick()
          exitSignalLong,
          exitSignalShort
       );
+      // Override with predictions from Python if available
+      ReadPythonSignals(PythonSignalFile,
+                       tradeSignalLong,
+                       tradeSignalShort,
+                       exitSignalLong,
+                       exitSignalShort);
      }
    else
      {
