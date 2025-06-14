@@ -9,23 +9,28 @@ Welcome to the **CCTS\_EA\_Framework** by [Maidenfan78](https://github.com/Maide
 ```
 MQL4/
 ├── Experts/
-│   └── CCTS_Breakout.mq4           # Main Expert Advisor file
+│   └── CCTS_Breakout.mq4                # Main Expert Advisor file
 ├── Include/
 │   └── CCTS/
-│       ├── CCTS_*.mqh              # Core utility modules (SL/TP, lots, logging, time, etc.)
-│       └── EaSetup/
-│           ├── Breakout_Setup.mqh  # Strategy-specific inputs
-│           └── Breakout_Signals.mqh # Signal generation logic
+│       ├── CCTS_*.mqh                   # Core utility modules (SL/TP, lots, logging, time, etc.)
+│       ├── EaSetup/
+│       │   ├── Breakout_Setup.mqh       # Strategy-specific inputs
+│       │   └── Breakout_Signals.mqh     # Signal generation logic
+│       └── Indicators/
+│           ├── V1/                      # Volume indicators (e.g., OBV with MA)
+│           └── Ex1/                     # Exit indicators (e.g., Rex)
+│           └── IndicatorSetBreakout.mqh # Indicators used by EA
+
 ```
 
 ---
-
 
 The EA uses the following main files:
 
 - `MQL4/Experts/CCTS_Breakout.mq4` – main Expert Advisor
 - `MQL4/Include/CCTS/EaSetup/Breakout_Setup.mqh` – strategy inputs
 - `MQL4/Include/CCTS/EaSetup/Breakout_Signals.mqh` – signal generation
+- `MQL4/Include/CCTS/Indicators/IndicatorSetBreakout.mqh` – loads V1 and Ex1 indicators
 
 Core Modules
 
@@ -54,6 +59,7 @@ Core Modules
 * ⏱️ **Time Tools** – Broker time conversion and session filters
 * 📒 **Trade Logging** – Built-in journaling for debugging and evaluation
 * 🧩 **Support for multiple strategies** – e.g., ICT concepts, divergence, Renko, pivot-based entries
+* 🔊 **Volume & Exit Indicators** – Includes the V1 OBV with MA filter and Ex1 Rex early-exit logic
 
 ---
 
@@ -79,55 +85,7 @@ Core Modules
 
 ## ⚙️ Indicator Inputs
 
-| Input Variable           | Description                                    |
-| ------------------------ | ---------------------------------------------- |
-| `CompareBarsAgo`         | How many bars back to compare current close    |
-| `RangeStart`/`RangeEnd`  | Range of bars for high/low breakout comparison |
-| `ATR_SL_Multiplier`      | 1.5x ATR for SL                                |
-| `ATR_TP_Multiplier`      | 1.0x ATR for TP (first trade)                  |
-| `ATR_TrailingStart`      | Trailing starts after 2.5x ATR profit          |
-| `ATR_TrailingMultiplier` | Trail SL with 2.0x ATR buffer                  |
-
----
-
-## ⏱ Time and Session Filters
-
-* **Timeframes**: H4 or D1
-* **Sessions**: Optional — Asian, London, NY
-* **Days**: Sunday/Saturday disabled by default
-
----
-
-## 💰 Trade Rules
-
-* **Trades per signal**: 2 orders
-
-* **TP for Trade 1**: 1x ATR
-
-* **SL for both**: 1.5x ATR
-
-* **Trade 2 behavior**:
-
-  * No TP unless `Use_Tp_2 = true`
-  * Breakeven if Trade 1 TP hits
-  * Trailing stop after 2.5x ATR profit
-
-* **Lot sizing**: Risk 1% per trade, calculated using:
-
-  ```
-  riskAmount / (StopLossPips * tickValue)
-  ```
-
-  → Total risk per signal = **2% of balance**
-
----
-
-## 🚀 Getting Started
-
-1. Clone or copy the repository to your terminal’s `MQL4/` directory.
-2. Open MetaEditor from MetaTrader 4.
-3. Compile the main EA:
-
+@@ -131,51 +136,51 @@ Core Modules
    ```
    MQL4/Experts/CCTS_Breakout.mq4
    ```
@@ -153,7 +111,7 @@ Make sure to adjust the path to `metaeditor.exe` as needed.
 
 ## 🔄 Future Enhancements
 
-* Add exit indicator to close positions earlier if market moves unfavorably (before SL)
+* ???
 
 ---
 
@@ -178,5 +136,3 @@ Make sure to adjust the path to `metaeditor.exe` as needed.
 ---
 
 ## 📎 License
-
-MIT License. Use and modify freely, but attribution is appreciated.
