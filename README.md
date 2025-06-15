@@ -16,13 +16,18 @@ MQL4/
 │       ├── EaSetup/
 │       │   ├── Breakout_Setup.mqh       # Strategy-specific inputs
 │       │   └── Breakout_Signals.mqh     # Signal generation logic
-│       └── Indicators/
-│           ├── V1/                      # Volume indicators (e.g., OBV with MA)
-│           └── Ex1/                     # Exit indicators (e.g., Rex)
-│           └── IndicatorSetBreakout.mqh # Indicators used by EA
-python/
-├── train_model.py        # Train ML models
-└── generate_signals.py   # Create signals for the EA
+│       ├── Indicators/
+│       │   ├── V1/                      # Volume indicators (e.g., OBV with MA)
+│       │   ├── Ex1/                     # Exit indicators (e.g., Rex)
+│       │   ├── Ex2/                     # Alternate exit indicators
+│       │   ├── BL2/                     # Baseline trend filters
+│       │   ├── C1/                      # Continuation signals set 1
+│       │   ├── C2/                      # Continuation signals set 2
+│       │   └── IndicatorSetBreakout.mqh # Indicators used by EA
+│       └── python/                      # Python integration scripts
+│           ├── train_model.py        # Train ML models
+│           ├── generate_signals.py   # Create signals for the EA
+│           └── watch_and_train.py    # Launch MT4 and monitor CSVs
 
 ```
 
@@ -33,7 +38,9 @@ The EA uses the following main files:
 - `MQL4/Experts/CCTS_Breakout.mq4` – main Expert Advisor
 - `MQL4/Include/CCTS/EaSetup/Breakout_Setup.mqh` – strategy inputs
 - `MQL4/Include/CCTS/EaSetup/Breakout_Signals.mqh` – signal generation
-- `MQL4/Include/CCTS/Indicators/IndicatorSetBreakout.mqh` – loads V1 and Ex1 indicators
+- `MQL4/Include/CCTS/Indicators/IndicatorSetBreakout.mqh` – loads V1, Ex1, Ex2, BL2, C1 and C2 indicators
+- `MQL4/Include/CCTS/ExportSignalsToCSV.mqh` – exports labeled OHLC+signal data
+- `MQL4/Include/CCTS/PythonSignalReader.mqh` – reads `python_signals_<magic>.csv`
 
 Core Modules
 
@@ -61,9 +68,10 @@ Core Modules
 * 📏 **Risk Management** – Includes auto lot sizing, SL/TP handling, ATR-based trailing stops
 * ⏱️ **Time Tools** – Broker time conversion and session filters
 * 📒 **Trade Logging** – Built-in journaling for debugging and evaluation
+* 💾 **CSV Signal Export** – `ExportSignalsToCSV.mqh` records labeled bars for ML training
 * 🧩 **Support for multiple strategies** – e.g., ICT concepts, divergence, Renko, pivot-based entries
 * 🔊 **Volume & Exit Indicators** – Includes the V1 OBV with MA filter and Ex1 Rex early-exit logic
-* 🤖 **Python ML integration** – Train models in Python and feed signals to the EA via `python_signals.csv`
+* 🤖 **Python ML integration** – Models are trained in Python and signals are read from `python_signals_<magic>.csv`
 
 ---
 
@@ -115,16 +123,15 @@ Make sure to adjust the path to `metaeditor.exe` as needed.
 
 ## 🐍 Python Signal Workflow
 
-1. Prepare a CSV file with OHLC data and the four target columns.
-2. Install Python dependencies (`pandas`, `scikit-learn`, `joblib`), then train the models:
+1. Run the EA with `ExportSignalsToCSV.mqh` included to produce `signals_labeled_<magic>.csv` in `MQL4/Files`.
+2. Install the Python dependencies (`pandas`, `scikit-learn`, `joblib`, `watchdog`).
+3. Start the watcher which launches MT4 and retrains/generates signals automatically:
    ```bash
-   python python/train_model.py data.csv --model model.pkl
+   python MQL4/Include/CCTS/python/watch_and_train.py
    ```
-3. Generate daily signals:
-   ```bash
-   python python/generate_signals.py latest.csv --model model.pkl --output MQL4/Files/python_signals.csv
-   ```
-4. Attach the EA to MT4 and it will read `python_signals.csv` on each tick.
+   Edit the `terminal_path` inside the script to match your MT4 installation.
+4. The script monitors `MQL4/Files` for `signals_labeled_<magic>.csv`. When a new file is detected it runs `train_model.py` and `generate_signals.py`.
+5. `generate_signals.py` writes `python_signals_<magic>.csv` which the EA reads each tick.
 
 ---
 
