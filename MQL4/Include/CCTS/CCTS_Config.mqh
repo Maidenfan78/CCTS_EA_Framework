@@ -45,7 +45,8 @@ string        magicNumberString;
 
 string        tradeComment_1;
 string        tradeComment_2;
-const string  PythonSignalFile = "python_signals.csv";
+
+string        PythonSignalFile;
 
 int           MagicNumber       = AutoMagic();
 
