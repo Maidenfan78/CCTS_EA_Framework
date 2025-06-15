@@ -40,20 +40,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-# ──────────────────────────────────────────────────────────────────
-# Locate repository root by finding the "MQL4" folder
-THIS_FILE = Path(__file__).resolve()
-parent = THIS_FILE
-REPO_ROOT = None
-while parent != parent.parent:
-    if (parent / "MQL4").is_dir():
-        REPO_ROOT = parent
-        break
-    parent = parent.parent
-if REPO_ROOT is None:
-    logging.error("Could not locate 'MQL4' folder upward from %s", THIS_FILE)
-    sys.exit(1)
-
 # Paths
 MT4_FILES_DIR    = REPO_ROOT / "MQL4" / "Files"
 PYTHON_MODEL_DIR = THIS_FILE.parent  # this 'python' folder
