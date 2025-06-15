@@ -1,9 +1,5 @@
-# train_model.py
 #!/usr/bin/env python3
-"""
-Train ML models on labeled MT4 data and save artifacts with metadata.
-"""
-import os
+"""Train ML models on labeled MT4 data and save artifacts with metadata."""
 import sys
 import json
 import logging
@@ -46,17 +42,22 @@ PYTHON_MODEL_DIR = THIS_FILE.parent  # 'python' folder
 SEED = 42
 CONFIG_PATH = THIS_FILE.parent / "config.json"
 
-# Load hyperparameters from config.json if exists
-if CONFIG_PATH.exists():
-    with open(CONFIG_PATH) as f:
-        config = json.load(f)
-else:
-    config = {
+
+def load_config() -> dict:
+    """Return hyperparameter configuration."""
+    if CONFIG_PATH.exists():
+        with open(CONFIG_PATH) as f:
+            return json.load(f)
+    default = {
         "n_estimators": 100,
         "learning_rate": 0.1,
-        "max_depth": 3
+        "max_depth": 3,
     }
-    logging.info("Using default hyperparameters: %s", config)
+    logging.info("Using default hyperparameters: %s", default)
+    return default
+
+
+config = load_config()
 
 
 def prepare_features(df: pd.DataFrame) -> pd.DataFrame:
