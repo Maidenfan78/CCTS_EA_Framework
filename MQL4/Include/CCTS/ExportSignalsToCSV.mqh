@@ -4,7 +4,7 @@
 //+------------------------------------------------------------------+
 #property strict
 
-#include <CCTS/EaSetup/Breakout_Signals.mqh>  // adjust path if needed
+#include "..\CCTS\EaSetup\Breakout_Signals.mqh"
 
 //--- User inputs for signal export
 extern string SignalFilenamePrefix = "signals_labeled";  // Filename prefix: signals_labeled_<magic>.csv

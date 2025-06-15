@@ -11,7 +11,8 @@
 #include "..\CCTS_Config.mqh"
 #include "..\EaSetup\Breakout_Setup.mqh"
 
-void signals(
+void signals_at(
+   int shift,
    int &tradeSignalLong,
    int &tradeSignalShort,
    int &exitSignalLong,
