@@ -1,3 +1,5 @@
+# generate_signals.py
+
 import argparse
 import joblib
 import pandas as pd
@@ -28,7 +30,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", default="model.pkl", help="Trained model file")
     parser.add_argument(
         "--output",
-        default="../MQL4/Files/python_signals.csv",
+        default="../Tester/Files/python_signals.csv",
         help="Where to write the signal file",
     )
     args = parser.parse_args()

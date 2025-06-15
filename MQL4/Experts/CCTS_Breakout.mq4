@@ -13,6 +13,7 @@
 #include "..\Include\CCTS\EaSetup\Breakout_Setup.mqh"
 #include "..\Include\CCTS\Indicators\\IndicatorSetBreakout.mqh"
 #include "..\Include\CCTS\EaSetup\Breakout_Signals.mqh"
+#include "..\Include\CCTS\ExportSignalsToCSV.mqh"
 
 //EA version & name
 #define EA_NAME         "Breakout"
@@ -128,6 +129,8 @@ int OnInit()
    if(EnableV1)
       V1Signals();
 
+         StartSignalExport();
+
    MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);
 
    Print(eaTitle, " EA initialized.");
@@ -171,18 +174,19 @@ void OnTick()
 //----------------------------------------
 // Only process on new bar
 //----------------------------------------
+{
+
+   // Only run once per new bar (backtest vs live)
    if(IsTesting())
-     {
-      // back-test: fire immediately on the new bar
-      if(!isNewBar)
-         return;
-     }
+   {
+      if(!isNewBar) return;
+      ExportSignalsOnTick();
+   }
    else
-     {
-      // live/demo: wait your 1.39% delay after candle open
-      if(!isAfterNewBar)
-         return;
-     }
+   {
+      if(!isAfterNewBar) return;
+      ExportSignalsOnTick();
+   }
 
 //----------------------------------------
 // SESSION FILTER
@@ -335,7 +339,7 @@ void OnTick()
    MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);
 
    WriteToFile(fileName, variables);
-  }
+  }}
 //------------------------------------------------------------------------------
 //  Returns true if all the trend & vol filters would allow a LONG entry
 bool CanEnterLong()

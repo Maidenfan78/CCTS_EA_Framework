@@ -8,7 +8,7 @@
 #define __PYTHON_SIGNAL_READER_MQH__
 
 void ReadPythonSignals(
-   const string &fileName,
+   const string &FileName,
    int &tradeSignalLong,
    int &tradeSignalShort,
    int &exitSignalLong,
@@ -19,7 +19,7 @@ void ReadPythonSignals(
    exitSignalLong   = 0;
    exitSignalShort  = 0;
 
-   int handle = FileOpen(fileName, FILE_READ | FILE_TXT);
+   int handle = FileOpen(FileName, FILE_READ | FILE_TXT);
    if(handle == INVALID_HANDLE)
       return;
 
