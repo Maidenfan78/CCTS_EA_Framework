@@ -1,9 +1,5 @@
 # train_model.py
 #!/usr/bin/env python3
-import os, sys
-ROOT   = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-VENDOR = os.path.join(ROOT, "vendor")
-sys.path.insert(0, VENDOR)
 """
 Train ML models on labeled MT4 data and save artifacts with metadata.
 """
@@ -12,17 +8,6 @@ import sys
 import json
 import logging
 from pathlib import Path
-import pandas as pd
-import joblib
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.dummy import DummyClassifier
-
-# Initialize logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
 
 # ──────────────────────────────────────────────────────────────────
 # Locate repository root by finding the "MQL4" folder
@@ -37,6 +22,21 @@ while parent != parent.parent:
 if REPO_ROOT is None:
     logging.error("Could not locate 'MQL4' folder upward from %s", THIS_FILE)
     sys.exit(1)
+
+VENDOR = REPO_ROOT / "vendor"
+sys.path.insert(0, str(VENDOR))
+
+import pandas as pd
+import joblib
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.dummy import DummyClassifier
+
+# Initialize logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 # Paths
 MT4_FILES_DIR    = REPO_ROOT / "MQL4" / "Files"

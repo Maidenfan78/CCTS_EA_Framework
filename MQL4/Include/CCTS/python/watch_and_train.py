@@ -1,20 +1,20 @@
 #watch_and_train.py
 #!/usr/bin/env python3
-import os, sys
-ROOT   = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-VENDOR = os.path.join(ROOT, "vendor")
-sys.path.insert(0, VENDOR)
+import os
+import sys
 """
 Polls MT4 "Files" folder every second for new signals_labeled_<magic>.csv,
 restarts MT4 if needed, retrains models, and regenerates python_signals_<magic>.csv.
 Includes a spinner and status messages to show activity.
 """
 
-import time, subprocess, os, sys, itertools
+import time
+import subprocess
+import itertools
 from pathlib import Path
 
 # ──────────────────────────────────────────────────────────────────
-# Locate repository root by finding the "MQL4" folder
+# Locate repository root and vendor folder
 THIS_FILE = Path(__file__).resolve()
 parent = THIS_FILE
 REPO_ROOT = None
@@ -26,6 +26,9 @@ while parent != parent.parent:
 if REPO_ROOT is None:
     print("[watch_and_train] ERROR: Could not locate 'MQL4' folder")
     sys.exit(1)
+
+VENDOR = REPO_ROOT / "vendor"
+sys.path.insert(0, str(VENDOR))
 
 # Paths
 MT4_FILES_DIR   = REPO_ROOT / "MQL4" / "Files"

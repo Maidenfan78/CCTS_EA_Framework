@@ -1,18 +1,34 @@
 # generate_signals.py
 #!/usr/bin/env python3
-import os, sys
-ROOT   = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-VENDOR = os.path.join(ROOT, "vendor")
-sys.path.insert(0, VENDOR)
+import os
+import sys
+
 """
 Auto-generate EA signal files named python_signals_<magic>.csv
 from signals_labeled_<magic>.csv and the corresponding model_<magic>.pkl.
 Includes structured logging, CSV error handling, and optional metadata output.
 """
-import sys
 import json
 import logging
 from pathlib import Path
+
+# ──────────────────────────────────────────────────────────────────
+# Locate repository root and vendor folder
+THIS_FILE = Path(__file__).resolve()
+parent = THIS_FILE
+REPO_ROOT = None
+while parent != parent.parent:
+    if (parent / "MQL4").is_dir():
+        REPO_ROOT = parent
+        break
+    parent = parent.parent
+if REPO_ROOT is None:
+    logging.error("Could not locate 'MQL4' folder upward from %s", THIS_FILE)
+    sys.exit(1)
+
+VENDOR = REPO_ROOT / "vendor"
+sys.path.insert(0, str(VENDOR))
+
 import pandas as pd
 import joblib
 from train_model import prepare_features
