@@ -1,35 +1,36 @@
 # 🧠 CCTS EA Framework – Modular Expert Advisor for MetaTrader 4 (MT4)
 
-Welcome to the **CCTS\_EA\_Framework** by [Maidenfan78](https://github.com/Maidenfan78) – a **modular Expert Advisor system written in MQL4** for MetaTrader 4. Designed with reusability and clean architecture in mind, this framework makes it easy to build and test trading strategies, including breakout, ATR-based, pivot point, and ICT-style logic.
+Welcome to the **CCTS_EA_Framework** by [Maidenfan78](https://github.com/Maidenfan78) – a **modular Expert Advisor system written in MQL4** for MetaTrader 4. Designed with reusability and clean architecture in mind, this framework makes it easy to build and test trading strategies, including breakout, ATR-based, pivot point, and ICT-style logic.
 
 ---
 
 ## 📁 Project Structure
 
-```
 MQL4/
 ├── Experts/
-│   └── CCTS_Breakout.mq4                # Main Expert Advisor file
+│ └── CCTS_Breakout.mq4 # Main Expert Advisor file
 ├── Include/
-│   └── CCTS/
-│       ├── CCTS_*.mqh                   # Core utility modules (SL/TP, lots, logging, time, etc.)
-│       ├── EaSetup/
-│       │   ├── Breakout_Setup.mqh       # Strategy-specific inputs
-│       │   └── Breakout_Signals.mqh     # Signal generation logic
-│       ├── Indicators/
-│       │   ├── V1/                      # Volume indicators (e.g., OBV with MA)
-│       │   ├── Ex1/                     # Exit indicators (e.g., Rex)
-│       │   ├── Ex2/                     # Alternate exit indicators
-│       │   ├── BL2/                     # Baseline trend filters
-│       │   ├── C1/                      # Continuation signals set 1
-│       │   ├── C2/                      # Continuation signals set 2
-│       │   └── IndicatorSetBreakout.mqh # Indicators used by EA
-│       └── python/                      # Python integration scripts
-│           ├── train_model.py        # Train ML models
-│           ├── generate_signals.py   # Create signals for the EA
-│           └── watch_and_train.py    # Launch MT4 and monitor CSVs
+│ └── CCTS/
+│ ├── CCTS_*.mqh # Core utility modules (SL/TP, lots, logging, time, etc.)
+│ ├── EaSetup/
+│ │ ├── Breakout_Setup.mqh # Strategy-specific inputs
+│ │ └── Breakout_Signals.mqh # Signal generation logic
+│ ├── Indicators/
+│ │ ├── V1/ # Volume indicators (e.g., OBV with MA)
+│ │ ├── Ex1/ # Exit indicators (e.g., Rex). The main exit indicator. Exit trades if they go south and hit stop loss.
+│ │ ├── Ex2/ # Alternate exit indicators. Used as a slower exit. Optimise to use when runner trad is left
+│ │ ├── BL2/ # Baseline trend filters
+│ │ ├── C1/ # Confirmation indicator 1
+│ │ ├── C2/ # Confirmation indicator 2
+│ │ └── IndicatorSetBreakout.mqh # Indicators used by EA
+│ └── python/ # Python integration scripts
+│ ├── train_model.py # Train ML models
+│ ├── generate_signals.py # Create signals for the EA
+│ └── watch_and_train.py # Launch MT4 and monitor CSVs
 
-```
+yaml
+Copy
+Edit
 
 ---
 
@@ -42,7 +43,7 @@ The EA uses the following main files:
 - `MQL4/Include/CCTS/ExportSignalsToCSV.mqh` – exports labeled OHLC+signal data
 - `MQL4/Include/CCTS/PythonSignalReader.mqh` – reads `python_signals_<magic>.csv`
 
-Core Modules
+Core Modules:
 
 - **CCTS_Config.mqh** – Shared inputs and variables
 - **CCTS_BaseIncludes.mqh** – Central list of include files
@@ -64,44 +65,43 @@ Core Modules
 
 ## 🔧 Key Features
 
-* 🔁 **Modular architecture** – Easily swap or extend signal logic per strategy
-* 📏 **Risk Management** – Includes auto lot sizing, SL/TP handling, ATR-based trailing stops
-* ⏱️ **Time Tools** – Broker time conversion and session filters
-* 📒 **Trade Logging** – Built-in journaling for debugging and evaluation
-* 💾 **CSV Signal Export** – `ExportSignalsToCSV.mqh` records labeled bars for ML training
-* 🧩 **Support for multiple strategies** – e.g., ICT concepts, divergence, Renko, pivot-based entries
-* 🔊 **Volume & Exit Indicators** – Includes the V1 OBV with MA filter and Ex1 Rex early-exit logic
+* 🔁 **Modular architecture** – Easily swap or extend signal logic per strategy  
+* 📏 **Risk Management** – Includes auto lot sizing, SL/TP handling, ATR-based trailing stops  
+* ⏱️ **Time Tools** – Broker time conversion and session filters  
+* 📒 **Trade Logging** – Built-in journaling for debugging and evaluation  
+* 💾 **CSV Signal Export** – `ExportSignalsToCSV.mqh` records labeled bars for ML training  
+* 🧩 **Support for multiple strategies** – e.g., ICT concepts, divergence, Renko, pivot-based entries  
+* 🔊 **Volume & Exit Indicators** – Includes the V1 OBV with MA filter and Ex1 Rex early-exit logic  
 * 🤖 **Python ML integration** – Models are trained in Python and signals are read from `python_signals_<magic>.csv`
 
 ---
 
 ## 🧠 Strategy Logic
 
-* **Signal Type**: Close-based breakout from recent range.
+**Signal Type**: Close-based breakout from recent range.
 
-* **Trade Direction**:
+**Trade Direction**:
+- **Long** if:
+  - `Close[1] > Close[1 + CompareBarsAgo]`
+  - AND `Close[1] > highest close in [RangeStart..RangeEnd]`
+  - AND `Close[1] > lowest close in [RangeStart..RangeEnd]`
+- **Short** if inverse of above.
 
-  * **Long** if:
-
-    * `Close[1] > Close[1 + CompareBarsAgo]`
-    * AND `Close[1] > highest close in [RangeStart..RangeEnd]`
-    * AND `Close[1] > lowest close in [RangeStart..RangeEnd]`
-  * **Short** if inverse of above.
-
-* **Exit Signal**:
-
-  * Exit current trade if candle reverses the entry signal (same 3 conditions, but opposite direction).
-  * Looks back 10 bars to detect last direction for context.
+**Exit Signal**:
+- Exit current trade if candle reverses the entry signal (same 3 conditions, but opposite direction).
+- Looks back 10 bars to detect last direction for context.
 
 ---
 
 ## ⚙️ Indicator Inputs
 
-@@ -131,51 +136,51 @@ Core Modules
-   ```
-   MQL4/Experts/CCTS_Breakout.mq4
-   ```
-4. Attach the compiled EA to a chart in MT4.
+MQL4/Experts/CCTS_Breakout.mq4
+
+yaml
+Copy
+Edit
+
+Attach the compiled EA to a chart in MT4.
 
 ---
 
@@ -115,53 +115,54 @@ set metaeditor_path="C:\Program Files (x86)\MetaTrader 4\metaeditor.exe"
 set mq4_file="MQL4\Experts\CCTS_Breakout.mq4"
 %metaeditor_path% /compile:%mq4_file%
 pause
-```
+Make sure to adjust the path to metaeditor.exe as needed.
 
-Make sure to adjust the path to `metaeditor.exe` as needed.
+🐍 Python Signal Workflow
+Run the EA with ExportSignalsToCSV.mqh included to produce signals_labeled_<magic>.csv in MQL4/Files.
 
----
+Install the Python dependencies using:
 
-## 🐍 Python Signal Workflow
+bash
+Copy
+Edit
+pip install -r requirements.txt
+Or manually:
 
-1. Run the EA with `ExportSignalsToCSV.mqh` included to produce `signals_labeled_<magic>.csv` in `MQL4/Files`.
-2. Install the Python dependencies (`pandas`, `scikit-learn`, `joblib`, `watchdog`).
-3. Start the watcher which launches MT4 and retrains/generates signals automatically:
-   ```bash
-   python MQL4/Include/CCTS/python/watch_and_train.py
-   ```
-   Edit the `terminal_path` inside the script to match your MT4 installation.
-4. The script monitors `MQL4/Files` for `signals_labeled_<magic>.csv`. When a new file is detected it runs `train_model.py` and `generate_signals.py`.
-5. `generate_signals.py` writes `python_signals_<magic>.csv` which the EA reads each tick.
+bash
+Copy
+Edit
+pip install pandas scikit-learn joblib watchdog
+Start the watcher which launches MT4 and retrains/generates signals automatically:
 
----
+bash
+Copy
+Edit
+python MQL4/Include/CCTS/python/watch_and_train.py
+Edit the terminal_path inside the script to match your MT4 installation.
 
-## 🔄 Future Enhancements
+The script monitors MQL4/Files for signals_labeled_<magic>.csv. When a new file is detected it runs train_model.py and generate_signals.py.
 
-* ???
+generate_signals.py writes python_signals_<magic>.csv which the EA reads each tick.
 
----
+🔄 Future Enhancements
+???
 
-## ✅ Performance Targets
+✅ Performance Targets
+Win Rate Goal: 55%+
 
-* **Win Rate Goal**: 55%+
-* **Profit Factor**: 1.5+
-* **Drawdown Limit**: Max 10%
-* **Backtest Assets**: Majors/minors, indices, crypto, commodities
-* **Backtest Period**: At least 3+ years for each symbol
+Profit Factor: 1.5+
 
----
+Drawdown Limit: Max 10%
 
-## 📌 About This Project
+Backtest Assets: Majors/minors, indices, crypto, commodities
 
-**CCTS\_EA\_Framework** is developed and maintained by [Maidenfan78](https://github.com/Maidenfan78). The goal is to provide a clean, reusable structure for developing high-performance EAs on MetaTrader 4 using MQL4.
+Backtest Period: At least 3+ years for each symbol
 
-### Keywords for discoverability:
+📌 About This Project
+CCTS_EA_Framework is developed and maintained by Maidenfan78. The goal is to provide a clean, reusable structure for developing high-performance EAs on MetaTrader 4 using MQL4.
 
-> MQL4 EA Framework, MetaTrader 4 Expert Advisor, Auto lot sizing MT4, Modular EA design, Money management MQL4, ATR trailing stop EA, ICT trading strategy EA, GitHub forex bot
+Keywords for discoverability:
+MQL4 EA Framework, MetaTrader 4 Expert Advisor, Auto lot sizing MT4, Modular EA design, Money management MQL4, ATR trailing stop EA, ICT trading strategy EA, GitHub forex bot
 
----
-
-## 📎 License
-
-This project is released under the MIT License. See the [LICENSE](LICENSE) file
-for the full text.
+📎 License
+This project is released under the MIT License. See the LICENSE file for the full text.
