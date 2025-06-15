@@ -1,4 +1,9 @@
+#watch_and_train.py
 #!/usr/bin/env python3
+import os, sys
+ROOT   = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+VENDOR = os.path.join(ROOT, "vendor")
+sys.path.insert(0, VENDOR)
 """
 Polls MT4 "Files" folder every second for new signals_labeled_<magic>.csv,
 restarts MT4 if needed, retrains models, and regenerates python_signals_<magic>.csv.

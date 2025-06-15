@@ -1,4 +1,9 @@
 # generate_signals.py
+#!/usr/bin/env python3
+import os, sys
+ROOT   = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+VENDOR = os.path.join(ROOT, "vendor")
+sys.path.insert(0, VENDOR)
 """
 Auto-generate EA signal files named python_signals_<magic>.csv
 from signals_labeled_<magic>.csv and the corresponding model_<magic>.pkl.

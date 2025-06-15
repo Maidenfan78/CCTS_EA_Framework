@@ -1,4 +1,9 @@
 # train_model.py
+#!/usr/bin/env python3
+import os, sys
+ROOT   = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+VENDOR = os.path.join(ROOT, "vendor")
+sys.path.insert(0, VENDOR)
 """
 Train ML models on labeled MT4 data and save artifacts with metadata.
 """
