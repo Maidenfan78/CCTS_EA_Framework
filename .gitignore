@@ -17,6 +17,22 @@ tester/*.xml
 *.set
 *.ini
 
+# Environment files
+.env
+*.venv/
+
+# ML artifacts
+*.pkl
+
 # OS-level clutter
 Thumbs.db
 .DS_Store
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyc
+
+# Optional: VSCode / JetBrains
+.vscode/
+.idea/

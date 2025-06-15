@@ -14,6 +14,8 @@
 #include "..\Include\CCTS\Indicators\\IndicatorSetBreakout.mqh"
 #include "..\Include\CCTS\EaSetup\Breakout_Signals.mqh"
 #include "..\Include\CCTS\ExportSignalsToCSV.mqh"
+#include "..\Include\CCTS\PythonSignalReader.mqh"
+
 
 //EA version & name
 #define EA_NAME         "Breakout"
@@ -67,6 +69,8 @@ int OnInit()
    eaTitle                 = EA_TITLE;
    tradeComment_1          = orderComment_1;
    tradeComment_2          = orderComment_2;
+   MagicNumber             = AutoMagic();
+   magicNumberString       = IntegerToString(MagicNumber);
    digits                  = (int)SymbolInfoInteger(currentSymbol, SYMBOL_DIGITS);
    double Sl               = 0;
    double Tp               = 0;
@@ -83,8 +87,6 @@ int OnInit()
    int    spread           = (int)MarketInfo(currentSymbol, MODE_SPREAD);
    openOrders              = MyOpenOrders();
    allowableSlippage       = calculateSlippage(spread);
-   MagicNumber             = AutoMagic();
-   magicNumberString       = IntegerToString(MagicNumber);
    string sess             = GetCurrentSession();
    string sessInfo         = (StringLen(sess)>0) ? "Session: "+sess : "Out of session";
 
@@ -103,7 +105,7 @@ int OnInit()
    InitializeDefaultValues(variables);              // Initialize default values
 
    ReadFromFile(fileName, variables);               // Load values from file //CSV version
-   Print("Read from file in OnInit");
+  // Print("Read from file in OnInit");
 
 // === SETUP PHASE ===
    if(EnableEx1)
@@ -128,10 +130,13 @@ int OnInit()
       C2Signals();
    if(EnableV1)
       V1Signals();
+      
+  PythonSignalFile = StringFormat("python_signals_%s.csv", magicNumberString);
 
-         StartSignalExport();
+   StartSignalExport();
 
    MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);
+
 
    Print(eaTitle, " EA initialized.");
 
@@ -147,6 +152,7 @@ void OnDeinit(const int reason)
    Print(eaTitle, " EA stopped.");
    WriteToFile(fileName, variables);
    LogTrade();
+   StopSignalExport();
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -174,172 +180,178 @@ void OnTick()
 //----------------------------------------
 // Only process on new bar
 //----------------------------------------
-{
-
-   // Only run once per new bar (backtest vs live)
-   if(IsTesting())
-   {
-      if(!isNewBar) return;
-      ExportSignalsOnTick();
-   }
-   else
-   {
-      if(!isAfterNewBar) return;
-      ExportSignalsOnTick();
-   }
-
-//----------------------------------------
-// SESSION FILTER
-//----------------------------------------
-   int  h        = TimeHour(TimeGMT());
-   bool inAsia   = (h >= ASIA_START_HOUR   && h < ASIA_END_HOUR);
-   bool inLondon = (h >= LONDON_START_HOUR && h < LONDON_END_HOUR);
-   bool inNY     = (h >= NY_START_HOUR     && h < NY_END_HOUR);
-
-   if(!IsDayAllowed())
-      return;
-
-// Skip session filtering for the Daily timeframe
-   if(Period() != PERIOD_D1)
      {
-// If *all* toggles are off, skip filtering entirely:
-      if(!(!EnableAsianSession && !EnableLondonSession && !EnableNewYorkSession))
+
+      // Only run once per new bar (backtest vs live)
+      if(IsTesting())
         {
-         // otherwise require at least one enabled session to be active
-         if(!((EnableAsianSession     && inAsia)
-              ||(EnableLondonSession  && inLondon)
-              ||(EnableNewYorkSession && inNY)))
+         if(!isNewBar)
+            return;
+         ExportSignalsOnTick();
+        }
+      else
+        {
+         if(!isAfterNewBar)
+            return;
+         ExportSignalsOnTick();
+        }
+
+      //----------------------------------------
+      // SESSION FILTER
+      //----------------------------------------
+      int  h        = TimeHour(TimeGMT());
+      bool inAsia   = (h >= ASIA_START_HOUR   && h < ASIA_END_HOUR);
+      bool inLondon = (h >= LONDON_START_HOUR && h < LONDON_END_HOUR);
+      bool inNY     = (h >= NY_START_HOUR     && h < NY_END_HOUR);
+
+      if(!IsDayAllowed())
+         return;
+
+      // Skip session filtering for the Daily timeframe
+      if(Period() != PERIOD_D1)
+        {
+         // If *all* toggles are off, skip filtering entirely:
+         if(!(!EnableAsianSession && !EnableLondonSession && !EnableNewYorkSession))
            {
-            return;  // outside your chosen session windows
+            // otherwise require at least one enabled session to be active
+            if(!((EnableAsianSession     && inAsia)
+                 ||(EnableLondonSession  && inLondon)
+                 ||(EnableNewYorkSession && inNY)))
+              {
+               return;  // outside your chosen session windows
+              }
            }
         }
-     }
 
-   string sess     = GetCurrentSession();
-   string sessInfo = StringLen(sess)>0 ? "Session: "+sess : "Out of session";
+      string sess     = GetCurrentSession();
+      string sessInfo = StringLen(sess)>0 ? "Session: "+sess : "Out of session";
 
-//----------------------------------------
-// housekeeping & setup
-//----------------------------------------
-   RefreshRates();
-   ATRValue                = iATR(currentSymbol, Period(), ATR_Period, 1);
-   PointValue();
-   ReadFromFile(fileName, variables);
-   LogTrade();
-   CalculateStandardSLTP(Sl, Tp, Tp_2, SlPoints, TpPoints, Tp_2Points);
-   ManageTrade2(true);   // you can still pass true if you need the bar flag
-   LotsVolume    = CalcLotsVolume(Sl, SlPoints);
-   pointValue    = SymbolInfoDouble(Symbol(), SYMBOL_TRADE_TICK_VALUE)
-                   / SymbolInfoDouble(Symbol(), SYMBOL_TRADE_TICK_SIZE);
-   dollarsAtRisk = MathRound(LotsVolume * Sl * pointValue);
+      //----------------------------------------
+      // housekeeping & setup
+      //----------------------------------------
+      RefreshRates();
+      ATRValue                = iATR(currentSymbol, Period(), ATR_Period, 1);
+      PointValue();
+      ReadFromFile(fileName, variables);
+      LogTrade();
+      CalculateStandardSLTP(Sl, Tp, Tp_2, SlPoints, TpPoints, Tp_2Points);
+      ManageTrade2(true);   // you can still pass true if you need the bar flag
+      LotsVolume    = CalcLotsVolume(Sl, SlPoints);
+      pointValue    = SymbolInfoDouble(Symbol(), SYMBOL_TRADE_TICK_VALUE)
+                      / SymbolInfoDouble(Symbol(), SYMBOL_TRADE_TICK_SIZE);
+      dollarsAtRisk = MathRound(LotsVolume * Sl * pointValue);
 
-//----------------------------------------
-// signals, display, exits
-//----------------------------------------
+      //----------------------------------------
+      // signals, display, exits
+      //----------------------------------------
 
-// === SETUP PHASE ===
-   if(EnableV1)
-      V1Setup();
-   if(EnableC2)
-      C2Setup();
-   if(EnableC1)
-      C1Setup();
-   if(EnableBL2)
-      BL2Setup();
+      // === SETUP PHASE ===
+      if(EnableV1)
+         V1Setup();
+      if(EnableC2)
+         C2Setup();
+      if(EnableC1)
+         C1Setup();
+      if(EnableBL2)
+         BL2Setup();
 
-// === SIGNAL PHASE ===
-   if(EnableBL2)
-      BL2Signals();
-   if(EnableC1)
-      C1Signals();
-   if(EnableC2)
-      C2Signals();
-   if(EnableV1)
-      V1Signals();
+      // === SIGNAL PHASE ===
+      if(EnableBL2)
+         BL2Signals();
+      if(EnableC1)
+         C1Signals();
+      if(EnableC2)
+         C2Signals();
+      if(EnableV1)
+         V1Signals();
 
-   if(UseBL2AsExit)
-      BL2ExitOn();
-   if(UseC1AsExit)
-      C1ExitOn();
-   if(EnableEx1)
-      FastExitIndicatorOn();
-   if(EnableEx2)
-      SlowExitIndicatorOn();
+      if(UseBL2AsExit)
+         BL2ExitOn();
+      if(UseC1AsExit)
+         C1ExitOn();
+      if(EnableEx1)
+         FastExitIndicatorOn();
+      if(EnableEx2)
+         SlowExitIndicatorOn();
 
-   if(openOrders != 0)
-      return;   // bail if any existing positions
+      if(openOrders != 0)
+         return;   // bail if any existing positions
 
-//----------------------------------------
-// entry logic
-//----------------------------------------
-   IndicatorStatus(tradeSignalLong, tradeSignalShort);
+      //----------------------------------------
+      // entry logic
+      //----------------------------------------
+      IndicatorStatus(tradeSignalLong, tradeSignalShort);
 
-// Populate custom-entry signals (or force Off when disabled)
-   if(UseCustomEntries)
-     {
-      signals(
-         tradeSignalLong,
-         tradeSignalShort,
-         exitSignalLong,
-         exitSignalShort
-      );
-      // Override with predictions from Python if available
-      ReadPythonSignals(PythonSignalFile,
-                       tradeSignalLong,
-                       tradeSignalShort,
-                       exitSignalLong,
-                       exitSignalShort);
-     }
-   else
-     {
-      // both signal flags → "Off"
-      tradeSignalLong  = 2;
-      tradeSignalShort = 2;
-     }
-
-   MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);
-
-   if(UseCustomExits)
-     {
-      if(exitSignalLong == 1 || exitSignalShort == 1)
-         CustomExitOn(exitSignalLong, exitSignalShort);
-     }
-
-
-// 1) Custom entries have top priority
-   if(UseCustomEntries)
-     {
-      if(tradeSignalLong  == 1 && CanEnterLong())
-        { openTrades(ORDER_TYPE_BUY, Sl, Tp, Tp_2); return; }
-      if(tradeSignalShort == 1 && CanEnterShort())
-        { openTrades(ORDER_TYPE_SELL, Sl, Tp, Tp_2); return; }
-     }
-// 2) C1 entries next
-   else
-      if(UseC1Entries && EnableC1)
+      // Populate custom-entry signals (or force Off when disabled)
+      if(UseCustomEntries)
         {
-         if((C1SignalCross == "Long"  || C1SignalCross == "Trending") &&
-            CanEnterLong())
+         // 1) First compute your built-in breakout signals
+         signals(
+            tradeSignalLong,
+            tradeSignalShort,
+            exitSignalLong,
+            exitSignalShort
+         );
+         // 2) Then override them with your ML outputs
+         ReadPythonSignals(
+            tradeSignalLong,
+            tradeSignalShort,
+            exitSignalLong,
+            exitSignalShort
+         );
+
+        }
+      else
+        {
+         // both signal flags → "Off"
+         tradeSignalLong  = 2;
+         tradeSignalShort = 2;
+        }
+
+      MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);
+
+      if(UseCustomExits)
+        {
+         if(exitSignalLong == 1 || exitSignalShort == 1)
+            CustomExitOn(exitSignalLong, exitSignalShort);
+        }
+
+
+      // 1) Custom entries have top priority
+      if(UseCustomEntries)
+        {
+         if(tradeSignalLong  == 1 && CanEnterLong())
            { openTrades(ORDER_TYPE_BUY, Sl, Tp, Tp_2); return; }
-         if((C1SignalCross == "Short" || C1SignalCross == "Trending") &&
-            CanEnterShort())
+         if(tradeSignalShort == 1 && CanEnterShort())
            { openTrades(ORDER_TYPE_SELL, Sl, Tp, Tp_2); return; }
         }
-      // 3) BL2 entries last
+      // 2) C1 entries next
       else
-         if(UseBL2Entries && EnableBL2)
+         if(UseC1Entries && EnableC1)
            {
-            if(BL2SignalCross == "Long"  && CanEnterLong())
+            if((C1SignalCross == "Long"  || C1SignalCross == "Trending") &&
+               CanEnterLong())
               { openTrades(ORDER_TYPE_BUY, Sl, Tp, Tp_2); return; }
-            if(BL2SignalCross == "Short" && CanEnterShort())
+            if((C1SignalCross == "Short" || C1SignalCross == "Trending") &&
+               CanEnterShort())
               { openTrades(ORDER_TYPE_SELL, Sl, Tp, Tp_2); return; }
            }
+         // 3) BL2 entries last
+         else
+            if(UseBL2Entries && EnableBL2)
+              {
+               if(BL2SignalCross == "Long"  && CanEnterLong())
+                 { openTrades(ORDER_TYPE_BUY, Sl, Tp, Tp_2); return; }
+               if(BL2SignalCross == "Short" && CanEnterShort())
+                 { openTrades(ORDER_TYPE_SELL, Sl, Tp, Tp_2); return; }
+              }
 
 
-   MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);
+      MetricsDisplayPanel(tradeSignalLong,tradeSignalShort,exitSignalLong,exitSignalShort,spread,SlPoints,TpPoints,Tp_2Points,dollarsAtRisk,sessInfo);
 
-   WriteToFile(fileName, variables);
-  }}
+      WriteToFile(fileName, variables);
+     }
+  }
 //------------------------------------------------------------------------------
 //  Returns true if all the trend & vol filters would allow a LONG entry
 bool CanEnterLong()
@@ -651,3 +663,4 @@ double OnTester()
 
    return (profitTrades / totalTrades);  // Win rate
   }
+//+------------------------------------------------------------------+
