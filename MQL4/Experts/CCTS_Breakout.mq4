@@ -105,7 +105,7 @@ int OnInit()
    InitializeDefaultValues(variables);              // Initialize default values
 
    ReadFromFile(fileName, variables);               // Load values from file //CSV version
-  // Print("Read from file in OnInit");
+// Print("Read from file in OnInit");
 
 // === SETUP PHASE ===
    if(EnableEx1)
@@ -130,8 +130,8 @@ int OnInit()
       C2Signals();
    if(EnableV1)
       V1Signals();
-      
-  PythonSignalFile = StringFormat("python_signals_%s.csv", magicNumberString);
+
+   PythonSignalFile = StringFormat("python_signals_%s.csv", magicNumberString);
 
    StartSignalExport();
 
@@ -286,7 +286,8 @@ void OnTick()
       if(UseCustomEntries)
         {
          // 1) First compute your built-in breakout signals
-         signals(
+         signals_at(
+            1,
             tradeSignalLong,
             tradeSignalShort,
             exitSignalLong,

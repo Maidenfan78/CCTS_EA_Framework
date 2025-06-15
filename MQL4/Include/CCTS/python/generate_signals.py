@@ -1,15 +1,26 @@
 # generate_signals.py
 """
 Auto-generate EA signal files named python_signals_<magic>.csv
-from the latest signals_labeled_<magic>.csv and the corresponding model_<magic>.pkl.
+from signals_labeled_<magic>.csv and the corresponding model_<magic>.pkl.
+Includes structured logging, CSV error handling, and optional metadata output.
 """
-from pathlib import Path
-import os, glob, joblib, pandas as pd
 import sys
+import json
+import logging
+from pathlib import Path
+import pandas as pd
+import joblib
 from train_model import prepare_features
 
+# Initialize logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
 # ──────────────────────────────────────────────────────────────────
-# Dynamically locate the repo root by finding the "MQL4" folder
+# Locate repository root by finding the "MQL4" folder
 THIS_FILE = Path(__file__).resolve()
 parent = THIS_FILE
 REPO_ROOT = None
@@ -19,80 +30,96 @@ while parent != parent.parent:
         break
     parent = parent.parent
 if REPO_ROOT is None:
-    print(f"[generate_signals] ERROR: Could not locate 'MQL4' folder upward from {THIS_FILE}")
+    logging.error("Could not locate 'MQL4' folder upward from %s", THIS_FILE)
     sys.exit(1)
 
-# Paths derived from repo root
+# Paths
 MT4_FILES_DIR    = REPO_ROOT / "MQL4" / "Files"
 PYTHON_MODEL_DIR = THIS_FILE.parent  # this 'python' folder
-LABELED_PATTERN  = str(MT4_FILES_DIR / "signals_labeled_*.csv")
-# ──────────────────────────────────────────────────────────────────
 
-# Validate critical paths and fail gracefully
-if not MT4_FILES_DIR.exists():
-    print(f"[generate_signals] ERROR: MT4 Files directory not found at {MT4_FILES_DIR}")
-    sys.exit(1)
 
-if not PYTHON_MODEL_DIR.exists():
-    print(f"[generate_signals] ERROR: Python model directory not found at {PYTHON_MODEL_DIR}")
-    sys.exit(1)
-
-# Find labeled files
-files = glob.glob(LABELED_PATTERN)
-if not files:
-    print(f"[generate_signals] ERROR: No labeled CSV found at {MT4_FILES_DIR}")
-    sys.exit(1)
-
-# Main logic
 def main():
-    # 1) Most recent labeled CSV
-    latest = max(files, key=os.path.getmtime)
-    basename = os.path.basename(latest)
-    # Extract magic
-    try:
-        magic = basename.split('_')[2].split('.')[0]
-    except Exception:
-        print(f"[generate_signals] ERROR: Unexpected filename format: {basename}")
+    # Parse magic argument
+    if len(sys.argv) < 2:
+        logging.error("No magic number passed.")
         sys.exit(1)
-    print(f"[generate_signals] Using labeled file {basename} (magic={magic})")
+    magic = sys.argv[1]
 
-    # 2) Load OHLC from labeled
-    df = pd.read_csv(latest, parse_dates=["Time"] if "Time" in open(latest).readline() else None)
-    ohlc = df.loc[:, ["Time","Open","High","Low","Close","Volume"]]
+    csv_file = f"signals_labeled_{magic}.csv"
+    model_file = f"model_{magic}.pkl"
+    out_file = f"python_signals_{magic}.csv"
 
-    # 3) Features and select latest
-    features = prepare_features(ohlc)
+    csv_path = MT4_FILES_DIR / csv_file
+    model_path = PYTHON_MODEL_DIR / model_file
+    out_path = MT4_FILES_DIR / out_file
+
+    # Validate paths
+    if not csv_path.exists():
+        logging.error("Labeled CSV not found: %s", csv_path)
+        sys.exit(1)
+    if not model_path.exists():
+        logging.error("Model file not found: %s", model_path)
+        sys.exit(1)
+
+    logging.info("Generating signals for magic %s from %s", magic, csv_file)
+
+    # Load labeled CSV
+    try:
+        df = pd.read_csv(csv_path, usecols=["Time","Open","High","Low","Close","Volume"], parse_dates=["Time"])
+    except pd.errors.EmptyDataError:
+        logging.error("CSV is empty: %s", csv_path)
+        sys.exit(1)
+    except Exception as e:
+        logging.error("Failed to read CSV: %s", e)
+        sys.exit(1)
+
+    # Compute features and select the latest row
+    features = prepare_features(df)
     if features.empty:
-        print(f"[generate_signals] ERROR: Not enough feature rows from {basename}")
+        logging.error("Not enough data to compute features from %s", csv_file)
         sys.exit(1)
     latest_feat = features.iloc[-1:]
 
-    # 4) Load corresponding model
-    model_filename = f"model_{magic}.pkl"
-    model_path = PYTHON_MODEL_DIR / model_filename
-    if not model_path.exists():
-        print(f"[generate_signals] ERROR: Model file not found: {model_path}")
-        sys.exit(1)
-    models = joblib.load(str(model_path))
-
-    # 5) Predict
-    preds = {name: int(model.predict(latest_feat)[0]) for name, model in models.items()}
-
-    # 6) Write output CSV
-    output_file = f"python_signals_{magic}.csv"
-    output_path = MT4_FILES_DIR / output_file
+    # Load model
     try:
-        with open(output_path, "w") as f:
-            f.write(
-                f"{preds['tradeSignalLong']}"
-                f",{preds['tradeSignalShort']}"
-                f",{preds['exitSignalLong']}"
-                f",{preds['exitSignalShort']}"
-            )
-        print(f"[generate_signals] Signals written to {output_file}")
+        models = joblib.load(model_path)
     except Exception as e:
-        print(f"[generate_signals] ERROR: Failed to write signals file: {e}")
+        logging.error("Failed to load model: %s", e)
         sys.exit(1)
+
+    # Predict
+    preds = {}
+    for name, model in models.items():
+        val = int(model.predict(latest_feat)[0])
+        if val not in (0, 1):
+            logging.warning("Unexpected prediction for %s: %s", name, val)
+        preds[name] = val
+
+    # Write output CSV
+    try:
+        out_path.write_text(
+            ",".join(str(preds[key]) for key in [
+                "tradeSignalLong", "tradeSignalShort", "exitSignalLong", "exitSignalShort"
+            ])
+        )
+        logging.info("Signals written to %s", out_file)
+    except Exception as e:
+        logging.error("Failed to write signals file: %s", e)
+        sys.exit(1)
+
+    # Optional: save metadata alongside signals
+    meta = {
+        "magic": magic,
+        "timestamp": pd.Timestamp.now().isoformat(),
+        "predictions": preds
+    }
+    meta_path = MT4_FILES_DIR / f"python_signals_{magic}_meta.json"
+    try:
+        meta_path.write_text(json.dumps(meta, indent=2))
+        logging.info("Saved signal metadata: %s", meta_path.name)
+    except Exception as e:
+        logging.warning("Failed to write metadata: %s", e)
+
 
 if __name__ == "__main__":
     main()

@@ -14,7 +14,7 @@
 
 //--- user inputs for our V1 wrapper
 extern string        V1                         = "---- V1 OBV Inputs ----";
-input string         V1Indicator                = "V1\\OBV_With_MA.mqh";  // indicator name (without .mq4)
+input string         V1Indicator                = "V1\\OBV_With_MA";  // indicator name (without .mq4)
 input int            V1MAPeriod                 = 14;                // MA period on OBV
 input ENUM_MA_METHOD V1MAMethod                 = MODE_SMA;          // MA type
 input int            V1MAShift                  = 0;                 // MA shift (bars)

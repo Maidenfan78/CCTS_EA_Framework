@@ -1,16 +1,26 @@
 # train_model.py
 """
-Find the most recent signals_labeled_<magic>.csv in MT4/Files,
-train models on it, and save model_<magic>.pkl in the python folder.
+Train ML models on labeled MT4 data and save artifacts with metadata.
 """
+import os
+import sys
+import json
+import logging
 from pathlib import Path
-import os, glob, joblib, pandas as pd
+import pandas as pd
+import joblib
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.dummy import DummyClassifier
-import sys
+
+# Initialize logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 # ──────────────────────────────────────────────────────────────────
-# Dynamically locate the repo root by finding the "MQL4" folder
+# Locate repository root by finding the "MQL4" folder
 THIS_FILE = Path(__file__).resolve()
 parent = THIS_FILE
 REPO_ROOT = None
@@ -20,78 +30,112 @@ while parent != parent.parent:
         break
     parent = parent.parent
 if REPO_ROOT is None:
-    print(f"[train_model] ERROR: Could not locate 'MQL4' folder upward from {THIS_FILE}")
+    logging.error("Could not locate 'MQL4' folder upward from %s", THIS_FILE)
     sys.exit(1)
 
-# Paths derived from repo root
+# Paths
 MT4_FILES_DIR    = REPO_ROOT / "MQL4" / "Files"
-PYTHON_MODEL_DIR = THIS_FILE.parent  # this 'python' folder
-LABELED_PATTERN  = str(MT4_FILES_DIR / "signals_labeled_*.csv")
-# ──────────────────────────────────────────────────────────────────
+PYTHON_MODEL_DIR = THIS_FILE.parent  # 'python' folder
 
-# Validate paths before doing any work
-if not MT4_FILES_DIR.exists():
-    print(f"[train_model] ERROR: MT4 Files folder not found at {MT4_FILES_DIR}")
-    sys.exit(1)
+# Constants
+SEED = 42
+CONFIG_PATH = THIS_FILE.parent / "config.json"
 
-# Grab the list of label files
-files = glob.glob(LABELED_PATTERN)
-if not files:
-    print(f"[train_model] ERROR: No signals_labeled_*.csv in {MT4_FILES_DIR}")
-    sys.exit(1)
+# Load hyperparameters from config.json if exists
+if CONFIG_PATH.exists():
+    with open(CONFIG_PATH) as f:
+        config = json.load(f)
+else:
+    config = {
+        "n_estimators": 100,
+        "learning_rate": 0.1,
+        "max_depth": 3
+    }
+    logging.info("Using default hyperparameters: %s", config)
 
 
 def prepare_features(df: pd.DataFrame) -> pd.DataFrame:
     df2 = df.copy()
-    df2["return"]  = df2["Close"].pct_change().fillna(0)
-    df2["ma_fast"] = df2["Close"].rolling(5).mean()
-    df2["ma_slow"] = df2["Close"].rolling(20).mean()
-    df2["ma_diff"] = df2["ma_fast"] - df2["ma_slow"]
-    return df2.dropna()[["return","ma_fast","ma_slow","ma_diff"]]
+    df2['return']  = df2['Close'].pct_change().fillna(0)
+    df2['ma_fast'] = df2['Close'].rolling(5).mean()
+    df2['ma_slow'] = df2['Close'].rolling(20).mean()
+    df2['ma_diff'] = df2['ma_fast'] - df2['ma_slow']
+    return df2.dropna()[['return', 'ma_fast', 'ma_slow', 'ma_diff']]
 
 
 def train(df: pd.DataFrame) -> dict:
     features = prepare_features(df)
     targets  = df.loc[features.index, [
-        "tradeSignalLong","tradeSignalShort","exitSignalLong","exitSignalShort"
+        'tradeSignalLong', 'tradeSignalShort', 'exitSignalLong', 'exitSignalShort'
     ]]
     models = {}
     for col in targets.columns:
         y = targets[col]
         unique = y.unique()
         if len(unique) < 2:
-            print(f"[train_model] WARNING: Only one class ({unique[0]}) for '{col}', using constant DummyClassifier.")
-            clf = DummyClassifier(strategy='constant', constant=unique[0])
-            clf.fit(features, y)
+            logging.warning("Only one class (%s) for '%s', using DummyClassifier.", unique[0], col)
+            clf = DummyClassifier(strategy='constant', constant=unique[0], random_state=SEED)
         else:
-            clf = GradientBoostingClassifier()
-            clf.fit(features, y)
+            clf = GradientBoostingClassifier(
+                n_estimators=config['n_estimators'],
+                learning_rate=config['learning_rate'],
+                max_depth=config['max_depth'],
+                random_state=SEED
+            )
+        clf.fit(features, y)
         models[col] = clf
+    logging.info("Trained models for: %s", list(models.keys()))
     return models
 
 
 def main():
-    # 1) locate latest labeled CSV
-    latest = max(files, key=os.path.getmtime)
-    magic  = Path(latest).stem.split("_")[2]
-    print(f"[train_model] Training on {Path(latest).name} (magic={magic})")
-
-    # 2) load data and prepare features
-    df = pd.read_csv(latest, parse_dates=["Time"] if "Time" in open(latest).readline() else None)
-    features = prepare_features(df)
-    if features.empty:
-        print(f"[train_model] ERROR: Not enough data to compute features from {latest}")
+    if len(sys.argv) < 2:
+        logging.error("No magic number passed.")
+        sys.exit(1)
+    magic = sys.argv[1]
+    csv_file = f"signals_labeled_{magic}.csv"
+    csv_path = MT4_FILES_DIR / csv_file
+    if not csv_path.exists():
+        logging.error("Labeled CSV not found: %s", csv_path)
         sys.exit(1)
 
-    # 3) train models
+    logging.info("Loading data from %s", csv_path)
+    try:
+        df = pd.read_csv(csv_path, parse_dates=['Time'])
+    except Exception as e:
+        logging.error("Failed to read CSV: %s", e)
+        sys.exit(1)
+
+    features = prepare_features(df)
+    if features.empty:
+        logging.error("Not enough data to compute features from %s", csv_file)
+        sys.exit(1)
+
     models = train(df)
 
-    # 4) save model_<magic>.pkl
     PYTHON_MODEL_DIR.mkdir(parents=True, exist_ok=True)
     model_filename = f"model_{magic}.pkl"
     model_path     = PYTHON_MODEL_DIR / model_filename
-    joblib.dump(models, str(model_path))
-    print(f"[train_model] Saved models to {model_path}")
+    joblib.dump(models, model_path)
 
-if __name__ == "__main__":
+    if not model_path.exists():
+        logging.error("Model save failed: %s", model_path)
+        sys.exit(1)
+
+    # Save metadata
+    meta = {
+        "magic": magic,
+        "timestamp": pd.Timestamp.now().isoformat(),
+        "rows": len(df),
+        "config": config,
+        "class_counts": df[['tradeSignalLong', 'tradeSignalShort', 'exitSignalLong', 'exitSignalShort']]
+                             .iloc[features.index].apply(pd.Series.value_counts).to_dict()
+    }
+    meta_path = PYTHON_MODEL_DIR / f"model_{magic}_meta.json"
+    with open(meta_path, 'w') as f:
+        json.dump(meta, f, indent=2)
+    logging.info("Saved model and metadata: %s", model_filename)
+
+
+if __name__ == '__main__':
     main()
