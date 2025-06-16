@@ -1,14 +1,17 @@
+#watch_and_train.py
 #!/usr/bin/env python3
-"""Watch for labeled CSVs and retrain models when new data arrives."""
-
+import os
 import sys
+"""
+Polls MT4 "Files" folder every second for new signals_labeled_<magic>.csv,
+restarts MT4 if needed, retrains models, and regenerates python_signals_<magic>.csv.
+Includes a spinner and status messages to show activity.
+"""
+
 import time
 import subprocess
-import logging
+import itertools
 from pathlib import Path
-
-from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler
 
 # ──────────────────────────────────────────────────────────────────
 # Locate repository root and vendor folder
@@ -27,105 +30,86 @@ if REPO_ROOT is None:
 VENDOR = REPO_ROOT / "vendor"
 sys.path.insert(0, str(VENDOR))
 
-# Logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-
 # Paths
-MT4_FILES_DIR = REPO_ROOT / "MQL4" / "Files"
-PYTHON_SCRIPTS = REPO_ROOT / "MQL4" / "Include" / "CCTS" / "python"
-TRAIN_SCRIPT = PYTHON_SCRIPTS / "train_model.py"
+MT4_FILES_DIR   = REPO_ROOT / "MQL4" / "Files"
+PYTHON_SCRIPTS  = REPO_ROOT / "MQL4" / "Include" / "CCTS" / "python"
+TRAIN_SCRIPT    = PYTHON_SCRIPTS / "train_model.py"
 GENERATE_SCRIPT = PYTHON_SCRIPTS / "generate_signals.py"
 
 # Settings
-PYTHON_EXE = "python"
+PYTHON_EXE     = "python"
 SIGNALS_PREFIX = "signals_labeled_"
-MIN_ROWS = 100
+MIN_ROWS       = 100     # adjust back up once testing is complete
+POLL_INTERVAL  = 1.0     # seconds
 
 # Verify paths exist
-for p, name in [
-    (MT4_FILES_DIR, "MT4 Files folder"),
-    (TRAIN_SCRIPT, "train_model.py"),
-    (GENERATE_SCRIPT, "generate_signals.py"),
-]:
+for p, name in [(MT4_FILES_DIR, "MT4 Files folder"),
+                (TRAIN_SCRIPT, "train_model.py"),
+                (GENERATE_SCRIPT, "generate_signals.py")]:
     if not p.exists():
-        logging.error("%s not found at %s", name, p)
+        print(f"[watch_and_train] ERROR: {name} not found at {p}")
         sys.exit(1)
 
 # Launch MT4
 TERMINAL = Path(r"E:\MT4_4.1_STD_1\terminal.exe")
 if TERMINAL.exists():
-    logging.info("Launching MT4: %s /portable", TERMINAL)
+    print(f"[watch_and_train] Launching MT4: {TERMINAL} /portable")
     subprocess.Popen([str(TERMINAL), "/portable"])
 else:
-    logging.warning("MT4 not found at %s", TERMINAL)
+    print(f"[watch_and_train] WARNING: MT4 not found at {TERMINAL}")
 
+# Keep track of processed magic numbers
 processed = set()
+spinner = itertools.cycle(['|', '/', '-', '\\'])
 
+# Initial status message
+print(f"[watch_and_train] Watching for new signals_labeled_<magic>.csv in {MT4_FILES_DIR}...")
+print(f"[watch_and_train] Polling every {POLL_INTERVAL}s, will train once {MIN_ROWS}+ rows detected.")
 
-def process_file(csv_path: Path):
-    fname = csv_path.name
-    magic = fname.replace(SIGNALS_PREFIX, "").replace(".csv", "")
-    if magic in processed:
-        return
-
-    # wait a bit for file to finish writing
-    time.sleep(0.5)
+while True:
     try:
-        with open(csv_path, "r") as f:
-            rows = sum(1 for _ in f) - 1
-    except Exception:
-        return
+        # Poll for new labeled files
+        for csv_path in MT4_FILES_DIR.glob(f"{SIGNALS_PREFIX}*.csv"):
+            fname = csv_path.name
+            magic = fname.replace(SIGNALS_PREFIX, "").replace(".csv", "")
 
-    if rows < MIN_ROWS:
-        return
+            if magic in processed:
+                continue
 
-    logging.info("New file detected: %s (%d rows)", fname, rows)
-    ret = subprocess.run([PYTHON_EXE, str(TRAIN_SCRIPT), magic])
-    if ret.returncode != 0:
-        logging.error("train_model returned %s", ret.returncode)
-        processed.add(magic)
-        return
+            try:
+                with open(csv_path, "r") as f:
+                    rows = sum(1 for _ in f) - 1
+            except Exception:
+                # File is still being written; skip for now
+                continue
 
-    ret = subprocess.run([PYTHON_EXE, str(GENERATE_SCRIPT), magic])
-    if ret.returncode != 0:
-        logging.error("generate_signals returned %s", ret.returncode)
-        processed.add(magic)
-        return
+            if rows < MIN_ROWS:
+                continue
 
-    logging.info("✅ Pipeline complete for magic=%s", magic)
-    processed.add(magic)
+            # Found a ready file – process it
+            print(f"[watch_and_train] New file detected: {fname} ({rows} rows) → training…")
+            ret = subprocess.run([PYTHON_EXE, str(TRAIN_SCRIPT), magic])
+            if ret.returncode != 0:
+                print(f"[watch_and_train] ERROR: train_model returned {ret.returncode}")
+                processed.add(magic)
+                continue
 
+            ret2 = subprocess.run([PYTHON_EXE, str(GENERATE_SCRIPT), magic])
+            if ret2.returncode != 0:
+                print(f"[watch_and_train] ERROR: generate_signals returned {ret2.returncode}")
+                processed.add(magic)
+                continue
 
-class CSVHandler(PatternMatchingEventHandler):
-    def __init__(self):
-        super().__init__(patterns=[f"{SIGNALS_PREFIX}*.csv"], ignore_directories=True)
+            print(f"[watch_and_train] ✅ Pipeline complete for magic={magic}")
+            processed.add(magic)
 
-    def on_created(self, event):
-        process_file(Path(event.src_path))
+        # Spinner + waiting status
+        ch = next(spinner)
+        sys.stdout.write(f"Waiting for new bar in MT4 {ch}    \r")
+        sys.stdout.flush()
 
-    def on_modified(self, event):
-        process_file(Path(event.src_path))
+        time.sleep(POLL_INTERVAL)
 
-
-def main():
-    logging.info("Watching for new %s*.csv in %s", SIGNALS_PREFIX, MT4_FILES_DIR)
-    observer = Observer()
-    handler = CSVHandler()
-    observer.schedule(handler, str(MT4_FILES_DIR), recursive=False)
-    observer.start()
-    try:
-        while True:
-            time.sleep(1)
     except KeyboardInterrupt:
-        logging.info("Stopped by user")
-    finally:
-        observer.stop()
-        observer.join()
-
-
-if __name__ == "__main__":
-    main()
+        print("\n[watch_and_train] Stopped by user.")
+        break

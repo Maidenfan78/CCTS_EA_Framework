@@ -1,6 +1,13 @@
+# generate_signals.py
 #!/usr/bin/env python3
-"""Generate EA signal files from labeled CSVs and trained models."""
+import os
 import sys
+
+"""
+Auto-generate EA signal files named python_signals_<magic>.csv
+from signals_labeled_<magic>.csv and the corresponding model_<magic>.pkl.
+Includes structured logging, CSV error handling, and optional metadata output.
+"""
 import json
 import logging
 from pathlib import Path
