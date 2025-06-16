@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Polls MT4 "Files" folder every second for new signals_labeled_<magic>.csv,
-restarts MT4 if needed, retrains models, and regenerates python_signals_<magic>.csv.
-Includes a spinner and status messages to show activity, and retrains whenever a file grows.
+Train ML models on labeled MT4 data and save artifacts with metadata.
 """
-
-import time, subprocess, sys, itertools
+import os
+import sys
+import json
+import logging
 from pathlib import Path
 
 # ──────────────────────────────────────────────────────────────────
@@ -23,23 +23,69 @@ if REPO_ROOT is None:
     sys.exit(1)
 
 # Paths
-MT4_FILES_DIR   = REPO_ROOT / "MQL4" / "Files"
-PYTHON_SCRIPTS  = REPO_ROOT / "MQL4" / "Include" / "CCTS" / "python"
-TRAIN_SCRIPT    = PYTHON_SCRIPTS / "train_model.py"
-GENERATE_SCRIPT = PYTHON_SCRIPTS / "generate_signals.py"
+MT4_FILES_DIR    = REPO_ROOT / "MQL4" / "Files"
+PYTHON_MODEL_DIR = THIS_FILE.parent  # 'python' folder
 
-# Settings
-PYTHON_EXE     = "python"
-SIGNALS_PREFIX = "signals_labeled_"
-MIN_ROWS       = 100     # minimum rows to trigger
-POLL_INTERVAL  = 1.0     # seconds
+# Constants
+SEED = 42
+CONFIG_PATH = THIS_FILE.parent / "config.json"
 
-# Verify paths exist
-for p, name in [(MT4_FILES_DIR, "MT4 Files folder"),
-                (TRAIN_SCRIPT, "train_model.py"),
-                (GENERATE_SCRIPT, "generate_signals.py")]:
-    if not p.exists():
-        print(f"[watch_and_train] ERROR: {name} not found at {p}")
+# Load hyperparameters from config.json if exists
+if CONFIG_PATH.exists():
+    with open(CONFIG_PATH) as f:
+        config = json.load(f)
+else:
+    config = {
+        "n_estimators": 100,
+        "learning_rate": 0.1,
+        "max_depth": 3
+    }
+    logging.info("Using default hyperparameters: %s", config)
+
+
+def prepare_features(df: pd.DataFrame) -> pd.DataFrame:
+    df2 = df.copy()
+    df2['return']  = df2['Close'].pct_change().fillna(0)
+    df2['ma_fast'] = df2['Close'].rolling(5).mean()
+    df2['ma_slow'] = df2['Close'].rolling(20).mean()
+    df2['ma_diff'] = df2['ma_fast'] - df2['ma_slow']
+    return df2.dropna()[['return', 'ma_fast', 'ma_slow', 'ma_diff']]
+
+
+def train(df: pd.DataFrame) -> dict:
+    features = prepare_features(df)
+    targets  = df.loc[features.index, [
+        'tradeSignalLong', 'tradeSignalShort', 'exitSignalLong', 'exitSignalShort'
+    ]]
+    models = {}
+    for col in targets.columns:
+        y = targets[col]
+        unique = y.unique()
+        if len(unique) < 2:
+            logging.warning("Only one class (%s) for '%s', using DummyClassifier.", unique[0], col)
+            clf = DummyClassifier(strategy='constant', constant=unique[0], random_state=SEED)
+        else:
+            clf = GradientBoostingClassifier(
+                n_estimators=config['n_estimators'],
+                learning_rate=config['learning_rate'],
+                max_depth=config['max_depth'],
+                random_state=SEED
+            )
+        clf.fit(features, y)
+        models[col] = clf
+    logging.info("Trained models for: %s", list(models.keys()))
+    return models
+
+
+def main():
+    if len(sys.argv) < 2:
+        logging.error("No magic number passed.")
+        sys.exit(1)
+    magic = sys.argv[1]
+    csv_file = f"signals_labeled_{magic}.csv"
+    csv_path = MT4_FILES_DIR / csv_file
+    if not csv_path.exists():
+        logging.error("Labeled CSV not found: %s", csv_path)
         sys.exit(1)
 
 # Launch MT4
