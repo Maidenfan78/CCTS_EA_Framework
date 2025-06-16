@@ -6,11 +6,13 @@
 #define __LOG_TRADES_BACKTEST_MQH__
 
 #include <CCTS\CCTS_Config.mqh>  // defines extern string eaTitle
+#include <CCTS\CCTS_LogUtils.mqh>
 
 string LogBacktestTradeFileName = "Logs/BacktestTradeHistory";
 
 void LogTradeBacktest()
 {
+   EnsureLogsDirectory();
    // build full filename
    string csvFilename = LogBacktestTradeFileName + "_" + eaTitle + ".csv";
 
