@@ -152,7 +152,6 @@ void OnDeinit(const int reason)
    Print(eaTitle, " EA stopped.");
    WriteToFile(fileName, variables);
    LogTrade();
-   StopSignalExport();
   }
 //+------------------------------------------------------------------+
 //|                                                                  |

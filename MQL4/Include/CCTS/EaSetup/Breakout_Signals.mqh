@@ -24,64 +24,60 @@ void signals_at(
    exitSignalLong   = 0;
    exitSignalShort  = 0;
 
-      // ◀── NEW bounds-check ──▶
-   // We peek back up to RangeEnd bars for entry,
-   // AND another 10 bars for exit-scan (i=2..11).
-   int maxLookback = MathMax(RangeEnd, CompareBarsAgo);
-   int exitBars    = 11;                         // bars scanned for last entry
-   int barsNeeded  = maxLookback + exitBars + 1; // +1 for zero-based safety
+   // --- make sure we have enough bars for lookback + exit scan
+   int exitBars    = 10;  // scan the next 10 older bars for the last entry
+   int barsNeeded  = shift + CompareBarsAgo + RangeEnd + exitBars;
+   if(Bars < barsNeeded) return;
 
-   if(Bars < barsNeeded)
-      return;
+   // --- calculate on the target bar (at index = shift)
+   int s = shift;
+   double signalValue   = Close[s];
+   double longTermValue = Close[s + CompareBarsAgo];
 
-   // need enough bars
-   if(Bars < RangeEnd + 2) 
-      return;
-
-   //--- primary values on the last closed bar
-   double signalValue   = Close[1];               // “gold line”
-   double longTermValue = Close[1 + CompareBarsAgo]; 
-
-   //--- compute highest/lowest CLOSE over our look-back range
-   double highestClose = Close[RangeStart];
-   double lowestClose  = Close[RangeStart];
-   for(int i = RangeStart+1; i <= RangeEnd; i++)
+   // compute highest / lowest CLOSE over our look-back range
+   double highestClose = Close[s + RangeStart];
+   double lowestClose  = Close[s + RangeStart];
+   for(int i = RangeStart; i <= RangeEnd; i++)
    {
-      double c = Close[i];
+      double c = Close[s + i];
       if(c > highestClose) highestClose = c;
       if(c < lowestClose)  lowestClose  = c;
    }
 
-   //--- entry signals
-   bool longCond  = (signalValue > longTermValue &&
-                     signalValue > highestClose &&
-                     signalValue > lowestClose);
-   bool shortCond = (signalValue < longTermValue &&
-                     signalValue < highestClose &&
-                     signalValue < lowestClose);
+   // entry signals
+   if(signalValue > longTermValue
+      && signalValue > highestClose
+      && signalValue > lowestClose)
+      tradeSignalLong = 1;
 
-   if(longCond)  tradeSignalLong  = 1;
-   if(shortCond) tradeSignalShort = 1;
+   if(signalValue < longTermValue
+      && signalValue < highestClose
+      && signalValue < lowestClose)
+      tradeSignalShort = 1;
 
-   //--- exit logic: find the last entry in the past 10 bars
-   int lastDir = 0; // +1=long, -1=short
-   for(int i = 2; i <= 11; i++) // bars 2..11 correspond to the last 10 closed bars
+   // exit logic: find the last entry in the next `exitBars` bars
+   int lastDir = 0;  // +1=long, -1=short
+   for(int offset = 1; offset <= exitBars; offset++)
    {
-      double sv   = Close[i];
-      double ltv  = Close[i + CompareBarsAgo - 1]; // align the longTermValue shift
-      double hi   = Close[i + RangeStart - 1];
-      double lo   = hi;
+      int idx = s + offset;
+      double sv  = Close[idx];
+      double ltv = Close[idx + CompareBarsAgo];
+
+      // compute hi/lo for that bar
+      double hi = Close[idx + RangeStart];
+      double lo = Close[idx + RangeStart];
       for(int j = RangeStart; j <= RangeEnd; j++)
       {
-         double cc = Close[i + j - 1];
+         double cc = Close[idx + j];
          if(cc > hi) hi = cc;
          if(cc < lo) lo = cc;
       }
+
       if(sv > ltv && sv > hi && sv > lo) { lastDir = +1; break; }
       if(sv < ltv && sv < hi && sv < lo) { lastDir = -1; break; }
    }
 
-   //--- exit on the current bar if it reverses the same three tests
+   // now exit on a reversal at the target bar
    if(lastDir == +1
       && signalValue < longTermValue
       && signalValue < highestClose

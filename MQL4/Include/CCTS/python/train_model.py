@@ -1,12 +1,11 @@
-# train_model.py
 #!/usr/bin/env python3
 """
-Train ML models on labeled MT4 data and save artifacts with metadata.
+Polls MT4 "Files" folder every second for new signals_labeled_<magic>.csv,
+restarts MT4 if needed, retrains models, and regenerates python_signals_<magic>.csv.
+Includes a spinner and status messages to show activity, and retrains whenever a file grows.
 """
-import os
-import sys
-import json
-import logging
+
+import time, subprocess, sys, itertools
 from pathlib import Path
 
 # ──────────────────────────────────────────────────────────────────
@@ -20,127 +19,89 @@ while parent != parent.parent:
         break
     parent = parent.parent
 if REPO_ROOT is None:
-    logging.error("Could not locate 'MQL4' folder upward from %s", THIS_FILE)
+    print("[watch_and_train] ERROR: Could not locate 'MQL4' folder")
     sys.exit(1)
 
-VENDOR = REPO_ROOT / "vendor"
-sys.path.insert(0, str(VENDOR))
-
-import pandas as pd
-import joblib
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.dummy import DummyClassifier
-
-# Initialize logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
-
 # Paths
-MT4_FILES_DIR    = REPO_ROOT / "MQL4" / "Files"
-PYTHON_MODEL_DIR = THIS_FILE.parent  # 'python' folder
+MT4_FILES_DIR   = REPO_ROOT / "MQL4" / "Files"
+PYTHON_SCRIPTS  = REPO_ROOT / "MQL4" / "Include" / "CCTS" / "python"
+TRAIN_SCRIPT    = PYTHON_SCRIPTS / "train_model.py"
+GENERATE_SCRIPT = PYTHON_SCRIPTS / "generate_signals.py"
 
-# Constants
-SEED = 42
-CONFIG_PATH = THIS_FILE.parent / "config.json"
+# Settings
+PYTHON_EXE     = "python"
+SIGNALS_PREFIX = "signals_labeled_"
+MIN_ROWS       = 100     # minimum rows to trigger
+POLL_INTERVAL  = 1.0     # seconds
 
-# Load hyperparameters from config.json if exists
-if CONFIG_PATH.exists():
-    with open(CONFIG_PATH) as f:
-        config = json.load(f)
+# Verify paths exist
+for p, name in [(MT4_FILES_DIR, "MT4 Files folder"),
+                (TRAIN_SCRIPT, "train_model.py"),
+                (GENERATE_SCRIPT, "generate_signals.py")]:
+    if not p.exists():
+        print(f"[watch_and_train] ERROR: {name} not found at {p}")
+        sys.exit(1)
+
+# Launch MT4
+TERMINAL = Path(r"E:\MT4_4.1_STD_1\terminal.exe")
+if TERMINAL.exists():
+    print(f"[watch_and_train] Launching MT4: {TERMINAL} /portable")
+    subprocess.Popen([str(TERMINAL), "/portable"])
 else:
-    config = {
-        "n_estimators": 100,
-        "learning_rate": 0.1,
-        "max_depth": 3
-    }
-    logging.info("Using default hyperparameters: %s", config)
+    print(f"[watch_and_train] WARNING: MT4 not found at {TERMINAL}")
 
+# Track last seen row-count per magic
+last_rows = {}
+spinner = itertools.cycle(['|', '/', '-', '\\'])
 
-def prepare_features(df: pd.DataFrame) -> pd.DataFrame:
-    df2 = df.copy()
-    df2['return']  = df2['Close'].pct_change().fillna(0)
-    df2['ma_fast'] = df2['Close'].rolling(5).mean()
-    df2['ma_slow'] = df2['Close'].rolling(20).mean()
-    df2['ma_diff'] = df2['ma_fast'] - df2['ma_slow']
-    return df2.dropna()[['return', 'ma_fast', 'ma_slow', 'ma_diff']]
+print(f"[watch_and_train] Watching for signals_labeled_<magic>.csv in {MT4_FILES_DIR}...")
+print(f"[watch_and_train] Polling every {POLL_INTERVAL}s, retraining when file rows >= {MIN_ROWS} and new.")
 
-
-def train(df: pd.DataFrame) -> dict:
-    features = prepare_features(df)
-    targets  = df.loc[features.index, [
-        'tradeSignalLong', 'tradeSignalShort', 'exitSignalLong', 'exitSignalShort'
-    ]]
-    models = {}
-    for col in targets.columns:
-        y = targets[col]
-        unique = y.unique()
-        if len(unique) < 2:
-            logging.warning("Only one class (%s) for '%s', using DummyClassifier.", unique[0], col)
-            clf = DummyClassifier(strategy='constant', constant=unique[0], random_state=SEED)
-        else:
-            clf = GradientBoostingClassifier(
-                n_estimators=config['n_estimators'],
-                learning_rate=config['learning_rate'],
-                max_depth=config['max_depth'],
-                random_state=SEED
-            )
-        clf.fit(features, y)
-        models[col] = clf
-    logging.info("Trained models for: %s", list(models.keys()))
-    return models
-
-
-def main():
-    if len(sys.argv) < 2:
-        logging.error("No magic number passed.")
-        sys.exit(1)
-    magic = sys.argv[1]
-    csv_file = f"signals_labeled_{magic}.csv"
-    csv_path = MT4_FILES_DIR / csv_file
-    if not csv_path.exists():
-        logging.error("Labeled CSV not found: %s", csv_path)
-        sys.exit(1)
-
-    logging.info("Loading data from %s", csv_path)
+while True:
     try:
-        df = pd.read_csv(csv_path, parse_dates=['Time'])
-    except Exception as e:
-        logging.error("Failed to read CSV: %s", e)
-        sys.exit(1)
+        for csv_path in MT4_FILES_DIR.glob(f"{SIGNALS_PREFIX}*.csv"):
+            fname = csv_path.name
+            magic = fname.replace(SIGNALS_PREFIX, "").replace(".csv", "")
 
-    features = prepare_features(df)
-    if features.empty:
-        logging.error("Not enough data to compute features from %s", csv_file)
-        sys.exit(1)
+            # Count rows
+            try:
+                with open(csv_path, 'r') as f:
+                    rows = sum(1 for _ in f) - 1
+            except Exception:
+                continue
 
-    models = train(df)
+            # Only consider if enough rows
+            if rows < MIN_ROWS:
+                continue
 
-    PYTHON_MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    model_filename = f"model_{magic}.pkl"
-    model_path     = PYTHON_MODEL_DIR / model_filename
-    joblib.dump(models, model_path)
+            # Has this file grown since last processed?
+            if magic in last_rows and rows <= last_rows[magic]:
+                continue
 
-    if not model_path.exists():
-        logging.error("Model save failed: %s", model_path)
-        sys.exit(1)
+            # New or grown file → retrain
+            print(f"[watch_and_train] Detected {fname} growth: {last_rows.get(magic,0)}→{rows} rows → retraining…")
+            ret = subprocess.run([PYTHON_EXE, str(TRAIN_SCRIPT), magic])
+            if ret.returncode != 0:
+                print(f"[watch_and_train] ERROR: train_model returned {ret.returncode}")
+                last_rows[magic] = rows
+                continue
 
-    # Save metadata
-    meta = {
-        "magic": magic,
-        "timestamp": pd.Timestamp.now().isoformat(),
-        "rows": len(df),
-        "config": config,
-        "class_counts": df[['tradeSignalLong', 'tradeSignalShort', 'exitSignalLong', 'exitSignalShort']]
-                             .iloc[features.index].apply(pd.Series.value_counts).to_dict()
-    }
-    meta_path = PYTHON_MODEL_DIR / f"model_{magic}_meta.json"
-    with open(meta_path, 'w') as f:
-        json.dump(meta, f, indent=2)
-    logging.info("Saved model and metadata: %s", model_filename)
+            ret2 = subprocess.run([PYTHON_EXE, str(GENERATE_SCRIPT), magic])
+            if ret2.returncode != 0:
+                print(f"[watch_and_train] ERROR: generate_signals returned {ret2.returncode}")
+            else:
+                print(f"[watch_and_train] ✅ Completed for magic={magic}")
 
+            # Update last seen rows
+            last_rows[magic] = rows
 
-if __name__ == '__main__':
-    main()
+        # Spinner + waiting status
+        ch = next(spinner)
+        sys.stdout.write(f"Waiting for new bar in MT4 {ch}    \r")
+        sys.stdout.flush()
+
+        time.sleep(POLL_INTERVAL)
+
+    except KeyboardInterrupt:
+        print("\n[watch_and_train] Stopped by user.")
+        break
