@@ -10,6 +10,7 @@
 
 #include "..\stdlib.mqh"
 #include "..\CCTS\CCTS_LogErrors.mqh"
+#include "..\CCTS\CCTS_LogUtils.mqh"
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -87,6 +88,7 @@ void LogAction(string actionType, string context, string one = "", string two = 
 
    if(logToFile)
      {
+      EnsureLogsDirectory();
       bool fileExists = FileIsExist(logFileName); // Check if the file already exists
       int handle = FileOpen(logFileName, FILE_WRITE | FILE_READ | FILE_CSV);
 

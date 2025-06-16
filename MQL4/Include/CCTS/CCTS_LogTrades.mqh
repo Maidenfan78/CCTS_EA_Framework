@@ -6,31 +6,41 @@
 #define __LOG_TRADES2_MQH__
 
 #include "CCTS_Config.mqh"
+#include "CCTS_LogUtils.mqh"
 
 string LogTradeFileName = "Logs/TradeHistory";
 
 void LogTrade()
   {
+   EnsureLogsDirectory();
    string csvFilename = LogTradeFileName + "_" + eaTitle + ".csv";
-   int    fileHandle  = FileOpen(csvFilename, FILE_WRITE|FILE_CSV, ",");
+   bool   isNewFile   = !FileIsExist(csvFilename);
+   int    fileHandle  = FileOpen(csvFilename,
+                                 FILE_READ | FILE_WRITE | FILE_CSV,
+                                 ',');
 
    if(fileHandle < 0)
      {
-      Print("Failed to create file: ", csvFilename);
+      Print("Failed to open file: ", csvFilename);
       return;
      }
 
-   // UTF-8 BOM
-   uchar bom[3] = {0xEF,0xBB,0xBF};
-   FileWriteArray(fileHandle, bom, 0, 3);
+   FileSeek(fileHandle, 0, SEEK_END);
 
-   // Header
-   FileWrite(fileHandle,
-             "EAName","EntryTime","ExitTime","Symbol","Timeframe","MagicNumber","TicketNumber","OrderType",
-             "LotSize","InitialRisk","RMultiple",
-             "OpenPrice","ClosePrice","TakeProfit","StopLoss",
-             "Profit","ProfitDirection","DurationDays","DurationHours",
-             "DurationMinutes","DealComment","ClosureReason");
+   if(isNewFile)
+     {
+      // UTF-8 BOM
+      uchar bom[3] = {0xEF,0xBB,0xBF};
+      FileWriteArray(fileHandle, bom, 0, 3);
+
+      // Header
+      FileWrite(fileHandle,
+                "EAName","EntryTime","ExitTime","Symbol","Timeframe","MagicNumber","TicketNumber","OrderType",
+                "LotSize","InitialRisk","RMultiple",
+                "OpenPrice","ClosePrice","TakeProfit","StopLoss",
+                "Profit","ProfitDirection","DurationDays","DurationHours",
+                "DurationMinutes","DealComment","ClosureReason");
+     }
 
    for(int i=OrdersHistoryTotal()-1; i>=0; i--)
      {

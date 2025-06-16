@@ -12,6 +12,7 @@
 #include "..\stderror.mqh"
 #include "..\stdlib.mqh"
 #include "CCTS_Config.mqh"
+#include "CCTS_LogUtils.mqh"
 
 //+------------------------------------------------------------------+
 void ErrorLog(string functionName, string context, string one = "", string two = "", string three = "",
@@ -131,6 +132,7 @@ void ErrorLog(string functionName, string context, string one = "", string two =
 
    if(logToFile)
      {
+      EnsureLogsDirectory();
       bool fileExists = FileIsExist(logFileName); // Check if the file exists
       int handle = INVALID_HANDLE;
       int maxRetries = 5;
