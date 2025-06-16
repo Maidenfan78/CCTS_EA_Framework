@@ -8,7 +8,7 @@
 
 //--- User inputs for signal export
 extern string SignalFilenamePrefix = "signals_labeled";  // Prefix: signals_labeled_<magic>.csv
-extern int    BackfillBars         = 500;                // Increased default to cover more history
+extern int    BackfillBars         = 1460;                // Increased default to cover more history
 
 //--- Internal globals
 static datetime recorded[];   // track which timestamps have been written
