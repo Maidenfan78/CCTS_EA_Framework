@@ -58,8 +58,8 @@ if TERMINAL.exists():
 else:
     print(f"[watch_and_train] WARNING: MT4 not found at {TERMINAL}")
 
-# Keep track of processed magic numbers
-processed = set()
+# Keep track of how many rows we've processed for each magic
+processed_rows = {}
 spinner = itertools.cycle(['|', '/', '-', '\\'])
 
 # Initial status message
@@ -73,9 +73,6 @@ while True:
             fname = csv_path.name
             magic = fname.replace(SIGNALS_PREFIX, "").replace(".csv", "")
 
-            if magic in processed:
-                continue
-
             try:
                 with open(csv_path, "r") as f:
                     rows = sum(1 for _ in f) - 1
@@ -86,22 +83,24 @@ while True:
             if rows < MIN_ROWS:
                 continue
 
+            last_rows = processed_rows.get(magic)
+            if last_rows is not None and rows <= last_rows:
+                continue
+
             # Found a ready file – process it
-            print(f"[watch_and_train] New file detected: {fname} ({rows} rows) → training…")
+            print(f"[watch_and_train] Processing {fname} ({rows} rows) → training…")
             ret = subprocess.run([PYTHON_EXE, str(TRAIN_SCRIPT), magic])
             if ret.returncode != 0:
                 print(f"[watch_and_train] ERROR: train_model returned {ret.returncode}")
-                processed.add(magic)
                 continue
 
             ret2 = subprocess.run([PYTHON_EXE, str(GENERATE_SCRIPT), magic])
             if ret2.returncode != 0:
                 print(f"[watch_and_train] ERROR: generate_signals returned {ret2.returncode}")
-                processed.add(magic)
                 continue
 
             print(f"[watch_and_train] ✅ Pipeline complete for magic={magic}")
-            processed.add(magic)
+            processed_rows[magic] = rows
 
         # Spinner + waiting status
         ch = next(spinner)
