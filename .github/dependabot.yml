@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # 1. NPM dependencies (frontend, Expo, React Native, Supabase client libs, etc.)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"           # Check for updates every day
+    open-pull-requests-limit: 5   # Avoid being overwhelmed with PRs
+    allow:
+      - dependency-type: "direct" # Only update direct dependencies (you can change this)
+
+  # 2. GitHub Actions updates (if you’re using GitHub Actions for CI/CD)
+  - package-ecosystem: "github-actions"
+    directory: "/"                # Root of your project
+    schedule:
+      interval: "weekly"          # Weekly check is enough for workflows
+    open-pull-requests-limit: 3
